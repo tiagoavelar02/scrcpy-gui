@@ -638,6 +638,11 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
              args.push("--otg".to_string());
         }
         args.push("--window-title=Scrcpy Pure HID".to_string());
+        // Start at 0,0 with fixed size for reliable ghosting
+        args.push("--window-x=0".to_string());
+        args.push("--window-y=0".to_string());
+        args.push("--window-width=300".to_string());
+        args.push("--window-height=300".to_string());
     } else {
         if hid_keyboard {
             args.push("--keyboard=uhid".to_string());
@@ -733,6 +738,41 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
     }
     
     args
+}
+
+pub fn ghost_scrcpy_window_sync() -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::Foundation::{HWND, COLORREF};
+        use windows::Win32::UI::WindowsAndMessaging::{
+            FindWindowW, GetWindowLongW, SetWindowLongW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW,
+            SetLayeredWindowAttributes, LWA_ALPHA, SetWindowPos, HWND_TOP, SWP_NOACTIVATE
+        };
+        use std::os::windows::ffi::OsStrExt;
+        use std::ffi::OsStr;
+
+        unsafe {
+            let window_name: Vec<u16> = OsStr::new("Scrcpy Pure HID")
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect();
+            
+            let target_hwnd = FindWindowW(windows::core::PCWSTR::null(), windows::core::PCWSTR(window_name.as_ptr()))
+                .unwrap_or(HWND::default());
+
+            if !target_hwnd.0.is_null() {
+                let style = GetWindowLongW(target_hwnd, GWL_EXSTYLE);
+                let ghost_style = style | WS_EX_LAYERED.0 as i32 | WS_EX_TOOLWINDOW.0 as i32;
+                let _ = SetWindowLongW(target_hwnd, GWL_EXSTYLE, ghost_style);
+                let _ = SetLayeredWindowAttributes(target_hwnd, COLORREF(0), 1, LWA_ALPHA);
+                let _ = SetWindowPos(target_hwnd, HWND_TOP, 0, 0, 300, 300, SWP_NOACTIVATE);
+                return Ok(());
+            }
+            return Err("Not found".to_string());
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    Ok(())
 }
 
 #[tauri::command]
@@ -853,6 +893,18 @@ pub async fn run_scrcpy(window: Window, state: State<'_, ScrcpyState>, config: S
             let _ = window_clone2.emit("scrcpy-log", buffer.join("\n"));
         }
     });
+
+    // Auto-ghosting thread for Pure HID mode
+    if config.session_mode == "mirror" && config.otg_pure.unwrap_or(false) {
+        tokio::spawn(async move {
+            for _ in 0..30 { // Try for 15 seconds (30 * 500ms)
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                if ghost_scrcpy_window_sync().is_ok() {
+                    break;
+                }
+            }
+        });
+    }
 
     // Store process
     state.processes.lock().unwrap().insert(config.device.clone(), child);
@@ -1234,40 +1286,71 @@ pub async fn save_report(app_handle: tauri::AppHandle, content: String, name: St
 
 #[tauri::command]
 pub async fn focus_scrcpy_window() -> Result<(), String> {
+    focus_scrcpy_window_sync()
+}
+
+pub fn focus_scrcpy_window_sync() -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        use windows::Win32::Foundation::{HWND, LPARAM, WPARAM, RECT};
+        use windows::Win32::Foundation::{HWND, LPARAM, WPARAM, BOOL};
         use windows::Win32::UI::WindowsAndMessaging::{
             FindWindowW, SetForegroundWindow, PostMessageW,
-            WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON,
-            GetWindowRect, GetClientRect,
+            WM_LBUTTONDOWN, WM_LBUTTONUP,
+            EnumWindows, GetWindowTextW,
         };
+        use windows::Win32::UI::Input::KeyboardAndMouse::{keybd_event, KEYBD_EVENT_FLAGS, VK_MENU};
         use std::os::windows::ffi::OsStrExt;
         use std::ffi::OsStr;
 
-        let window_name: Vec<u16> = OsStr::new("Scrcpy Pure HID")
-            .encode_wide()
-            .chain(std::iter::once(0))
-            .collect();
-
         unsafe {
-            let hwnd = FindWindowW(windows::core::PCWSTR::null(), windows::core::PCWSTR(window_name.as_ptr()));
-            if !hwnd.0.is_null() {
-                SetForegroundWindow(hwnd);
+            // Try specific title first
+            let window_name: Vec<u16> = OsStr::new("Scrcpy Pure HID")
+                .encode_wide()
+                .chain(std::iter::once(0))
+                .collect();
+            
+            let mut target_hwnd = FindWindowW(windows::core::PCWSTR::null(), windows::core::PCWSTR(window_name.as_ptr()))
+                .unwrap_or(HWND::default());
 
-                let mut rect = RECT { left: 0, top: 0, right: 0, bottom: 0 };
-                if GetClientRect(hwnd, &mut rect).is_ok() {
-                    let width = rect.right - rect.left;
-                    let height = rect.bottom - rect.top;
-                    let x = width / 2;
-                    let y = height / 2;
+            if !target_hwnd.0.is_null() {
+                use windows::Win32::Foundation::COLORREF;
+                use windows::Win32::UI::WindowsAndMessaging::{
+                    GetForegroundWindow, IsIconic, ShowWindow, SW_RESTORE,
+                    GetWindowLongW, SetWindowLongW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW,
+                    SetLayeredWindowAttributes, LWA_ALPHA, SetWindowPos, HWND_TOP, SWP_NOACTIVATE
+                };
+                
+                // 1. Ghost Window Strategy (Updated):
+                // We make the window layered and a tool window (hides from taskbar).
+                // We REMOVE WS_EX_TRANSPARENT because it prevents scrcpy from 'grabbing' the mouse.
+                // Alpha = 1 is essentially invisible to the user but solid to the OS.
+                let style = GetWindowLongW(target_hwnd, GWL_EXSTYLE);
+                let ghost_style = style | WS_EX_LAYERED.0 as i32 | WS_EX_TOOLWINDOW.0 as i32;
+                
+                let _ = SetWindowLongW(target_hwnd, GWL_EXSTYLE, ghost_style);
+                let _ = SetLayeredWindowAttributes(target_hwnd, COLORREF(0), 1, LWA_ALPHA);
+                
+                // Increase size to 300x300 to ensure the OS and scrcpy see it as a 'real' target.
+                let _ = SetWindowPos(target_hwnd, HWND_TOP, 0, 0, 300, 300, SWP_NOACTIVATE);
 
-                    let lparam = LPARAM(((y << 16) | (x & 0xFFFF)) as isize);
-                    let wparam = WPARAM(MK_LBUTTON as usize);
-
-                    let _ = PostMessageW(hwnd, WM_LBUTTONDOWN, wparam, lparam);
-                    let _ = PostMessageW(hwnd, WM_LBUTTONUP, WPARAM(0), lparam);
+                // 2. If minimized, we MUST restore it.
+                if IsIconic(target_hwnd).as_bool() {
+                    let _ = ShowWindow(target_hwnd, SW_RESTORE);
                 }
+
+                // 3. Bring to foreground so scrcpy can grab focus.
+                let foreground_hwnd = GetForegroundWindow();
+                if target_hwnd != foreground_hwnd {
+                    keybd_event(VK_MENU.0 as u8, 0, KEYBD_EVENT_FLAGS(0), 0);
+                    let _ = SetForegroundWindow(target_hwnd);
+                    keybd_event(VK_MENU.0 as u8, 0, KEYBD_EVENT_FLAGS(2), 0);
+                }
+
+                // 4. Send the trigger click to scrcpy's input manager.
+                let lparam = LPARAM(((150 << 16) | (150 & 0xFFFF)) as isize);
+                let wparam = WPARAM(1); // MK_LBUTTON = 0x0001
+                let _ = PostMessageW(target_hwnd, WM_LBUTTONDOWN, wparam, lparam);
+                let _ = PostMessageW(target_hwnd, WM_LBUTTONUP, WPARAM(0), lparam);
 
                 return Ok(());
             } else {
@@ -1278,7 +1361,6 @@ pub async fn focus_scrcpy_window() -> Result<(), String> {
 
     #[cfg(not(target_os = "windows"))]
     {
-        // For non-Windows OS, we return an ok but log that it's not supported
         Ok(())
     }
 }

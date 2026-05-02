@@ -11,10 +11,50 @@ import Footer from "./components/Footer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import OnboardingModal from "./components/OnboardingModal";
 import ThemedModal from "./components/ThemedModal";
+import HoverTrigger from "./components/HoverTrigger";
 import { useScrcpy } from "./hooks/useScrcpy";
 import { getVersion } from '@tauri-apps/api/app';
 
 function App() {
+  const [windowLabel, setWindowLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    // 1. Try Tauri label
+    let label = getCurrentWindow().label;
+    
+    // 2. Fallback to URL parameter (foolproof for multi-window)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlLabel = urlParams.get('label');
+    
+    if (urlLabel) {
+      label = urlLabel;
+    }
+
+    console.log('[APP] Final window label resolution:', label);
+    setWindowLabel(label);
+  }, []);
+
+  if (windowLabel && windowLabel.startsWith('hover-trigger')) {
+    return (
+      <div className="min-h-screen bg-transparent overflow-hidden">
+        <HoverTrigger />
+      </div>
+    );
+  }
+
+  if (windowLabel === 'splashscreen') {
+    return null;
+  }
+
+  // If we haven't found the label yet, or it's 'main', render the main app
+  if (windowLabel === null) {
+    return <div className="min-h-screen bg-zinc-950" />;
+  }
+
+  return <MainApp />;
+}
+
+function MainApp() {
   const {
     devices,
     logs,
@@ -222,7 +262,7 @@ function App() {
             to { opacity: 1; transform: translateY(0); }
           }
         `}</style>
-        <div className="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none z-0"></div>
+        <div className="fixed inset-0 opacity-20 pointer-events-none z-0"></div>
         <div className="fixed top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/30 via-transparent to-transparent pointer-events-none z-0"></div>
 
         <div className="relative z-10 flex flex-col h-screen transition-all duration-700">

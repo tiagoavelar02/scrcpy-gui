@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Monitor, Camera, LayoutGrid, ChevronDown, Lock, Unlock, Settings2, Video, ExternalLink, Keyboard, Mouse } from 'lucide-react';
+import { Play, Square, Monitor, Camera, LayoutGrid, ChevronDown, Lock, Unlock, Settings2, Video, ExternalLink, Keyboard, Mouse, MousePointer2 } from 'lucide-react';
 import { RenderDriverSupport, ScrcpyConfig } from '../../hooks/useScrcpy';
 import { invoke } from '@tauri-apps/api/core';
+import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import Tooltip from '../Tooltip';
 import { buildRendererOptions, mapRendererSelection } from './rendererOptions';
 
@@ -132,6 +133,71 @@ export default function ControlPanel({
 
     // BitrateControl removed from here
 
+    const [isConfiguringHover, setIsConfiguringHover] = useState(false);
+
+    // Auto-open hover areas when Pure HID session starts
+    useEffect(() => {
+        if (isRunning && config.otgPure && (config.hidKeyboard || config.hidMouse)) {
+            spawnHoverAreas();
+        }
+    }, [isRunning, config.otgPure, config.hidKeyboard, config.hidMouse]);
+
+    const spawnHoverAreas = async () => {
+        try {
+            const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
+            const { availableMonitors } = await import('@tauri-apps/api/window');
+            const monitors = await availableMonitors();
+            
+            for (let i = 0; i < monitors.length; i++) {
+                const label = `hover-trigger-${i}`;
+                let win = await WebviewWindow.getByLabel(label);
+                
+                if (!win) {
+                    const monitor = monitors[i];
+                    const scale = monitor.scaleFactor;
+                    const logicalHeight = monitor.size.height / scale;
+                    
+                    // Tiny corner window (32x32 logical pixels)
+                    const size = 32;
+                    const posX = monitor.position.x / scale;
+                    const posY = (monitor.position.y / scale) + logicalHeight - size;
+                    
+                    const baseUrl = window.location.href.split('?')[0].split('#')[0];
+                    const url = `${baseUrl}?label=${label}`;
+                    
+                    new WebviewWindow(label, {
+                        url,
+                        title: 'Hover to Control',
+                        width: size,
+                        height: size,
+                        resizable: true,
+                        decorations: false,
+                        alwaysOnTop: true,
+                        transparent: true,
+                        shadow: false,
+                        focusable: false,
+                        visible: true,
+                        x: posX,
+                        y: posY,
+                        center: false,
+                    });
+                } else {
+                    await win.show();
+                    await win.unminimize();
+                }
+            }
+        } catch (err) {
+            console.error('[HOVER] Failed to spawn hover areas:', err);
+        }
+    };
+
+    const toggleHoverConfig = async () => {
+        const { emit } = await import('@tauri-apps/api/event');
+        const nextState = !isConfiguringHover;
+        setIsConfiguringHover(nextState);
+        await emit('toggle-hover-config', nextState);
+    };
+
     const PerformanceGrid = ({ showResolution = true }: { showResolution?: boolean }) => (
         <div className={`grid ${showResolution ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
             {showResolution && (
@@ -181,6 +247,31 @@ export default function ControlPanel({
             />
         </div>
     );
+
+    const handleStopSession = async () => {
+        try {
+            const { emit } = await import('@tauri-apps/api/event');
+            const { getAllWindows } = await import('@tauri-apps/api/window');
+            
+            // Layer 1: Tell all windows to close themselves
+            await emit('close-hover-triggers');
+            
+            // Wait a moment for windows to process the close signal
+            await new Promise(r => setTimeout(r, 200));
+            
+            // Layer 2: Fallback forced cleanup for any survivors
+            const windows = await getAllWindows();
+            for (const win of windows) {
+                if (win.label.startsWith('hover-trigger-')) {
+                    console.log(`[HOVER] Fallback closing window: ${win.label}`);
+                    await win.close();
+                }
+            }
+        } catch (e) {
+            console.error("[HOVER] Error closing windows:", e);
+        }
+        onStop();
+    };
 
     return (
         <main className="lg:col-span-6 space-y-4">
@@ -515,16 +606,23 @@ export default function ControlPanel({
                 ) : (
                     <div className="flex flex-col gap-2 relative z-10 w-full">
                         {(config.hidKeyboard || config.hidMouse) && config.otgPure && (
-                            <div
-                                className="w-full py-4 rounded-2xl bg-primary/20 border border-primary/50 text-primary flex items-center justify-center cursor-crosshair hover:bg-primary/30 transition-colors animate-pulse"
-                                onMouseEnter={() => invoke('focus_scrcpy_window').catch(console.error)}
-                                title="Hover over this area to instantly switch mouse/keyboard control to your phone. Press Alt to release."
+                            <button
+                                onClick={toggleHoverConfig}
+                                className={`w-full py-3 rounded-2xl border transition-all flex items-center justify-center gap-2 group ${
+                                    isConfiguringHover 
+                                        ? 'bg-primary border-primary text-on-primary shadow-[0_0_30px_rgba(139,92,246,0.4)]' 
+                                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-primary hover:border-primary/50'
+                                }`}
+                                title={isConfiguringHover ? "Exit configuration mode and lock hover area." : "Enter configuration mode to move and resize the hover area."}
                             >
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] pointer-events-none">Hover here to control phone</span>
-                            </div>
+                                <Settings2 size={16} className={isConfiguringHover ? 'animate-spin-slow' : 'group-hover:rotate-90 transition-transform duration-500'} />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                    {isConfiguringHover ? 'Lock Hover Area' : 'Configure Hover Area'}
+                                </span>
+                            </button>
                         )}
                         <button
-                            onClick={onStop}
+                            onClick={handleStopSession}
                             className="w-full py-3.5 rounded-2xl text-base font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group active:scale-[0.98] border border-red-500/50"
                         >
                             {/* Dark Red Gradient Background */}
