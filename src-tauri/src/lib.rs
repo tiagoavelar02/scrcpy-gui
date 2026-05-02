@@ -89,6 +89,7 @@ pub fn run() {
             commands::get_videos_dir,
             commands::save_report,
             commands::run_terminal_command,
+            commands::focus_scrcpy_window,
             close_splashscreen,
             get_app_version
         ])

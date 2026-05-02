@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Square, Monitor, Camera, LayoutGrid, ChevronDown, Lock, Unlock, Settings2, Video, ExternalLink, Keyboard, Mouse } from 'lucide-react';
 import { RenderDriverSupport, ScrcpyConfig } from '../../hooks/useScrcpy';
+import { invoke } from '@tauri-apps/api/core';
 import Tooltip from '../Tooltip';
 import { buildRendererOptions, mapRendererSelection } from './rendererOptions';
 
@@ -512,18 +513,29 @@ export default function ControlPanel({
                         </span>
                     </button>
                 ) : (
-                    <button
-                        onClick={onStop}
-                        className="w-full py-3.5 rounded-2xl text-base font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group active:scale-[0.98] border border-red-500/50"
-                    >
-                        {/* Dark Red Gradient Background */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-900 group-hover:from-red-500 group-hover:to-red-800 transition-all" />
+                    <div className="flex flex-col gap-2 relative z-10 w-full">
+                        {(config.hidKeyboard || config.hidMouse) && config.otgPure && (
+                            <div
+                                className="w-full py-4 rounded-2xl bg-primary/20 border border-primary/50 text-primary flex items-center justify-center cursor-crosshair hover:bg-primary/30 transition-colors animate-pulse"
+                                onMouseEnter={() => invoke('focus_scrcpy_window').catch(console.error)}
+                                title="Hover over this area to instantly switch mouse/keyboard control to your phone. Press Alt to release."
+                            >
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] pointer-events-none">Hover here to control phone</span>
+                            </div>
+                        )}
+                        <button
+                            onClick={onStop}
+                            className="w-full py-3.5 rounded-2xl text-base font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group active:scale-[0.98] border border-red-500/50"
+                        >
+                            {/* Dark Red Gradient Background */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-900 group-hover:from-red-500 group-hover:to-red-800 transition-all" />
 
-                        <span className="relative z-10 flex items-center justify-center gap-3 text-white">
-                            <Square fill="white" size={18} className="group-hover:rotate-90 transition-transform duration-500" />
-                            Stop Session
-                        </span>
-                    </button>
+                            <span className="relative z-10 flex items-center justify-center gap-3 text-white">
+                                <Square fill="white" size={18} className="group-hover:rotate-90 transition-transform duration-500" />
+                                Stop Session
+                            </span>
+                        </button>
+                    </div>
                 )}
             </div>
         </main>

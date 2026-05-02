@@ -637,6 +637,7 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
         } else {
              args.push("--otg".to_string());
         }
+        args.push("--window-title=Scrcpy Pure HID".to_string());
     } else {
         if hid_keyboard {
             args.push("--keyboard=uhid".to_string());
@@ -919,7 +920,6 @@ mod tests {
             record: None,
             record_path: None,
             scrcpy_path: None,
-            otg_enabled: None,
             otg_pure: None,
             camera_facing: None,
             camera_id: None,
@@ -931,6 +931,9 @@ mod tests {
             vd_dpi: None,
             rotation: None,
             res: None,
+            hid_keyboard: None,
+            hid_mouse: None,
+            render_driver: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -955,7 +958,6 @@ mod tests {
             record: None,
             record_path: None,
             scrcpy_path: None,
-            otg_enabled: None,
             otg_pure: None,
             camera_facing: Some("front".to_string()),
             camera_id: None,
@@ -967,6 +969,9 @@ mod tests {
             vd_dpi: None,
             rotation: None,
             res: None,
+            hid_keyboard: None,
+            hid_mouse: None,
+            render_driver: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -992,7 +997,6 @@ mod tests {
             record: None,
             record_path: None,
             scrcpy_path: None,
-            otg_enabled: None,
             otg_pure: None,
             camera_facing: None,
             camera_id: None,
@@ -1004,6 +1008,9 @@ mod tests {
             vd_dpi: None,
             rotation: None,
             res: None,
+            hid_keyboard: None,
+            hid_mouse: None,
+            render_driver: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1224,3 +1231,54 @@ pub async fn save_report(app_handle: tauri::AppHandle, content: String, name: St
 }
 
 
+
+#[tauri::command]
+pub async fn focus_scrcpy_window() -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::Foundation::{HWND, LPARAM, WPARAM, RECT};
+        use windows::Win32::UI::WindowsAndMessaging::{
+            FindWindowW, SetForegroundWindow, PostMessageW,
+            WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON,
+            GetWindowRect, GetClientRect,
+        };
+        use std::os::windows::ffi::OsStrExt;
+        use std::ffi::OsStr;
+
+        let window_name: Vec<u16> = OsStr::new("Scrcpy Pure HID")
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+
+        unsafe {
+            let hwnd = FindWindowW(windows::core::PCWSTR::null(), windows::core::PCWSTR(window_name.as_ptr()));
+            if !hwnd.0.is_null() {
+                SetForegroundWindow(hwnd);
+
+                let mut rect = RECT { left: 0, top: 0, right: 0, bottom: 0 };
+                if GetClientRect(hwnd, &mut rect).is_ok() {
+                    let width = rect.right - rect.left;
+                    let height = rect.bottom - rect.top;
+                    let x = width / 2;
+                    let y = height / 2;
+
+                    let lparam = LPARAM(((y << 16) | (x & 0xFFFF)) as isize);
+                    let wparam = WPARAM(MK_LBUTTON as usize);
+
+                    let _ = PostMessageW(hwnd, WM_LBUTTONDOWN, wparam, lparam);
+                    let _ = PostMessageW(hwnd, WM_LBUTTONUP, WPARAM(0), lparam);
+                }
+
+                return Ok(());
+            } else {
+                return Err("Window not found".to_string());
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        // For non-Windows OS, we return an ok but log that it's not supported
+        Ok(())
+    }
+}
