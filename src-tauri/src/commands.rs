@@ -1064,8 +1064,8 @@ pub async fn download_scrcpy(window: Window) -> Result<(), String> {
         return Err("Unsupported OS for auto-download".to_string());
     };
 
-    window.emit("scrcpy-log", format!("[SYSTEM] Detecting platform: {} ({})", os_tag, arch_tag)).unwrap();
-    window.emit("scrcpy-status", json!({ "type": "downloading", "success": true, "message": format!("Fetching latest {} release...", arch_tag) })).unwrap();
+    let _ = window.emit("scrcpy-log", format!("[SYSTEM] Detecting platform: {} ({})", os_tag, arch_tag));
+    let _ = window.emit("scrcpy-status", json!({ "type": "downloading", "success": true, "message": format!("Fetching latest {} release...", arch_tag) }));
 
     let client = reqwest::Client::builder().user_agent("ScrcpyGui-Downloader").build().map_err(|e| e.to_string())?;
     
@@ -1093,7 +1093,7 @@ pub async fn download_scrcpy(window: Window) -> Result<(), String> {
                 }
             }
         } else if resp.status() == reqwest::StatusCode::FORBIDDEN {
-            window.emit("scrcpy-log", "[SYSTEM] API rate limited, attempting fallback discovery...").unwrap();
+            let _ = window.emit("scrcpy-log", "[SYSTEM] API rate limited, attempting fallback discovery...");
             used_fallback = true;
         }
     } else {
@@ -1111,7 +1111,7 @@ pub async fn download_scrcpy(window: Window) -> Result<(), String> {
             if tag.starts_with('v') {
                 filename = format!("scrcpy-{}-{}{}", arch_tag, tag, extension);
                 download_url = format!("https://github.com/Genymobile/scrcpy/releases/download/{}/{}", tag, filename);
-                window.emit("scrcpy-log", format!("[SYSTEM] Discovered latest tag via fallback: {}", tag)).unwrap();
+                let _ = window.emit("scrcpy-log", format!("[SYSTEM] Discovered latest tag via fallback: {}", tag));
             }
         }
     }
@@ -1120,7 +1120,7 @@ pub async fn download_scrcpy(window: Window) -> Result<(), String> {
         return Err(format!("Could not find {} binary. (API rate limit might be active)", arch_tag));
     }
 
-    window.emit("scrcpy-log", format!("[SYSTEM] Found asset: {}", filename)).unwrap();
+    let _ = window.emit("scrcpy-log", format!("[SYSTEM] Found asset: {}", filename));
     
     let current_dir = std::env::current_exe()
         .ok()
@@ -1135,7 +1135,7 @@ pub async fn download_scrcpy(window: Window) -> Result<(), String> {
         let mut download_resp = client.get(&download_url).send().await.map_err(|e| format!("Failed to connect to download URL: {}", e))?;
         let total_size = download_resp.content_length().unwrap_or(0);
         
-        window.emit("scrcpy-log", format!("[SYSTEM] Downloading: {} MB", total_size / 1024 / 1024)).unwrap();
+        let _ = window.emit("scrcpy-log", format!("[SYSTEM] Downloading: {} MB", total_size / 1024 / 1024));
 
         let mut downloaded: u64 = 0;
         while let Some(chunk) = download_resp.chunk().await.map_err(|e| e.to_string())? {
@@ -1148,8 +1148,8 @@ pub async fn download_scrcpy(window: Window) -> Result<(), String> {
         }
     }
     
-    window.emit("scrcpy-log", "[SYSTEM] Download finished. Starting extraction...").unwrap();
-    window.emit("scrcpy-status", json!({ "type": "downloading", "success": true, "message": "Extracting binaries..." })).unwrap();
+    let _ = window.emit("scrcpy-log", "[SYSTEM] Download finished. Starting extraction...");
+    let _ = window.emit("scrcpy-status", json!({ "type": "downloading", "success": true, "message": "Extracting binaries..." }));
 
     if extract_path.exists() {
         let _ = std::fs::remove_dir_all(&extract_path);
@@ -1162,12 +1162,12 @@ pub async fn download_scrcpy(window: Window) -> Result<(), String> {
     std::fs::create_dir_all(&temp_extract_dir).map_err(|e| e.to_string())?;
 
     if extension == ".zip" {
-        window.emit("scrcpy-log", "[SYSTEM] Decompressing ZIP archive...").unwrap();
+        let _ = window.emit("scrcpy-log", "[SYSTEM] Decompressing ZIP archive...");
         let file = std::fs::File::open(&temp_archive_path).map_err(|e| format!("Failed to open zip: {}", e))?;
         let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("Failed to read zip archive: {}", e))?;
         archive.extract(&temp_extract_dir).map_err(|e| format!("Failed to extract: {}", e))?;
     } else {
-        window.emit("scrcpy-log", "[SYSTEM] Decompressing TAR.GZ archive...").unwrap();
+        let _ = window.emit("scrcpy-log", "[SYSTEM] Decompressing TAR.GZ archive...");
         let file = std::fs::File::open(&temp_archive_path).map_err(|e| format!("Failed to open tar.gz: {}", e))?;
         let tar = GzDecoder::new(file);
         let mut archive = Archive::new(tar);
@@ -1197,7 +1197,7 @@ pub async fn download_scrcpy(window: Window) -> Result<(), String> {
     if temp_extract_dir.exists() { let _ = std::fs::remove_dir_all(&temp_extract_dir); }
     if temp_archive_path.exists() { let _ = std::fs::remove_file(&temp_archive_path); }
 
-    window.emit("scrcpy-status", json!({ "type": "download-complete", "success": true, "message": extract_path.to_string_lossy() })).unwrap();
+    let _ = window.emit("scrcpy-status", json!({ "type": "download-complete", "success": true, "message": extract_path.to_string_lossy() }));
     Ok(())
 }
 
