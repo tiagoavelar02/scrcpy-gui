@@ -250,11 +250,17 @@ pub async fn adb_pair(window: Window, ip: String, code: String, custom_path: Opt
 pub async fn adb_shell(device: String, command: String, custom_path: Option<String>) -> serde_json::Value {
     let adb_path = get_binary_path("adb", custom_path);
     
+    // Split the command into arguments and quote each one for the remote shell
+    let args = match split_args(&command) {
+        Ok(parts) => parts.into_iter().map(|s| quote_for_shell(&s)).collect::<Vec<_>>(),
+        Err(e) => return json!({ "success": false, "message": e })
+    };
+
     let output = create_command(&adb_path)
         .arg("-s")
         .arg(&device)
         .arg("shell")
-        .arg(&command)
+        .args(&args)
         .output()
         .await;
 
@@ -327,13 +333,21 @@ pub async fn run_terminal_command(device: Option<String>, cmd: String, custom_pa
 fn split_args(s: &str) -> Result<Vec<String>, String> {
     let mut args = Vec::new();
     let mut current = String::new();
-    let mut in_quotes = false;
-    let chars = s.chars();
+    let mut in_double_quotes = false;
+    let mut in_single_quotes = false;
+    let mut escaped = false;
 
-    for c in chars {
-        if c == '"' {
-            in_quotes = !in_quotes;
-        } else if c.is_whitespace() && !in_quotes {
+    for c in s.chars() {
+        if escaped {
+            current.push(c);
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == '"' && !in_single_quotes {
+            in_double_quotes = !in_double_quotes;
+        } else if c == '\'' && !in_double_quotes {
+            in_single_quotes = !in_single_quotes;
+        } else if c.is_whitespace() && !in_double_quotes && !in_single_quotes {
             if !current.is_empty() {
                 args.push(current.clone());
                 current.clear();
@@ -342,13 +356,29 @@ fn split_args(s: &str) -> Result<Vec<String>, String> {
             current.push(c);
         }
     }
+
     if !current.is_empty() {
         args.push(current);
     }
-    if in_quotes {
+
+    if in_double_quotes || in_single_quotes {
         return Err("Unclosed quotes".to_string());
     }
+    if escaped {
+        return Err("Trailing backslash".to_string());
+    }
     Ok(args)
+}
+
+fn quote_for_shell(s: &str) -> String {
+    if s.is_empty() {
+        return "''".to_string();
+    }
+    // Bourne shell quoting: wrap in single quotes, and replace each single quote with '\''
+    let mut result = String::from("'");
+    result.push_str(&s.replace("'", "'\\''"));
+    result.push('\'');
+    result
 }
 
 #[tauri::command]
