@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, LogicalPosition, LogicalSize } from "@tauri-apps/api/window";
-import { Move, CornerBottomLeft } from "lucide-react";
+import { Move } from "lucide-react";
 
 const HoverTrigger = () => {
   const [isEditMode, setIsEditMode] = useState(false);
@@ -39,10 +39,10 @@ const HoverTrigger = () => {
 
   const resetToCorner = async () => {
     try {
-      const monitor = await window.currentMonitor();
+      const monitor = await (window as any).currentMonitor();
       if (monitor) {
         console.log('[HOVER] Resetting to corner for monitor:', monitor.name);
-        const { width, height } = monitor.size;
+        const { height } = monitor.size;
         const scale = monitor.scaleFactor;
         const logicalHeight = height / scale;
         const posX = monitor.position.x / scale;
@@ -77,7 +77,7 @@ const HoverTrigger = () => {
       {isEditMode && (
         <>
           <Move size={32} className="text-primary animate-pulse" />
-          <span className="text-[10px] font-bold uppercase tracking-tighter text-primary mt-2">
+          <span className="text-[10px] font-bold text-primary mt-2">
             Resize & Move Me
           </span>
         </>

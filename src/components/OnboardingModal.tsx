@@ -42,10 +42,10 @@ export default function OnboardingModal({
                         <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent opacity-50 blur-3xl"></div>
 
                         <div className="relative z-10">
-                            <h2 className="text-3xl font-black italic tracking-tighter uppercase">
+                            <h2 className="text-3xl font-semibold italic">
                                 scrcpy <span className="text-primary not-italic">GUI</span>
                             </h2>
-                            <p className="text-[10px] uppercase font-black tracking-widest text-primary mt-2">Core Initialization</p>
+                            <p className="text-[10px] font-semibold text-primary mt-2">Core Initialization</p>
                         </div>
 
                         <div className="relative z-10 space-y-4">
@@ -60,7 +60,7 @@ export default function OnboardingModal({
                     {/* Right Side: Setup */}
                     <div className="flex-1 p-8 sm:p-12">
                         <div className="mb-10">
-                            <h3 className="text-2xl font-black tracking-tight text-white mb-2 uppercase italic">Setup Core Components</h3>
+                            <h3 className="text-2xl font-semibold tracking-tight text-white mb-2 italic">Setup Core Components</h3>
                             <p className="text-zinc-500 text-sm font-medium">Automatic or manual installation required.</p>
                         </div>
 
@@ -76,7 +76,7 @@ export default function OnboardingModal({
                                 </div>
 
                                 <div className="flex-1 pt-1">
-                                    <h4 className={`text-sm font-black uppercase tracking-widest ${isReady ? 'text-white' : 'text-zinc-400'}`}>
+                                    <h4 className={`text-sm font-semibold   ${isReady ? 'text-white' : 'text-zinc-400'}`}>
                                         Binaries & Drivers
                                     </h4>
                                     <p className="text-xs text-zinc-500 leading-relaxed font-medium mb-4">
@@ -88,7 +88,7 @@ export default function OnboardingModal({
                                             <button
                                                 onClick={onDownload}
                                                 disabled={isDownloading}
-                                                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-black rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                                                className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-black rounded-xl text-[10px] font-semibold transition-all hover:bg-primary/90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                                             >
                                                 {isDownloading ? (
                                                     <><RefreshCcw size={12} className="animate-spin" /> Downloading... {downloadProgress}%</>
@@ -108,7 +108,7 @@ export default function OnboardingModal({
                                             <div className="pt-6 border-t border-zinc-900">
                                                 <div className="flex items-center gap-2 text-zinc-500 mb-2">
                                                     <HelpCircle size={14} />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Manual Setup Fallback</span>
+                                                    <span className="text-[10px] font-semibold">Manual Setup Fallback</span>
                                                 </div>
                                                 <p className="text-[10px] text-zinc-600 mb-3 leading-loose">
                                                     If auto-download fails, try running as <span className="text-zinc-400 font-bold">Administrator</span>. Alternatively, download manually and set the path via the folder icon in the top-right corner.
@@ -117,7 +117,7 @@ export default function OnboardingModal({
                                                     href="https://github.com/Genymobile/scrcpy/releases/latest"
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase text-primary hover:underline tracking-widest"
+                                                    className="inline-flex items-center gap-1.5 text-[9px] font-semibold text-primary hover:underline"
                                                 >
                                                     GitHub Releases <ExternalLink size={10} />
                                                 </a>
@@ -128,7 +128,7 @@ export default function OnboardingModal({
                                     {isReady && (
                                         <div className="flex items-center gap-2 text-emerald-500 animate-in fade-in slide-in-from-left-2 duration-1000">
                                             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Success! Binaries Active</span>
+                                            <span className="text-[10px] font-semibold text-emerald-400">Success! Binaries Active</span>
                                         </div>
                                     )}
                                 </div>
@@ -139,7 +139,7 @@ export default function OnboardingModal({
                             <button
                                 onClick={onComplete}
                                 disabled={!isReady}
-                                className={`group flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isReady
+                                className={`group flex items-center gap-3 px-8 py-4 rounded-2xl text-[10px] font-semibold   transition-all ${isReady
                                     ? 'bg-primary text-on-primary hover:scale-105 active:scale-95 shadow-[0_10px_20px_rgba(139,92,246,0.2)]'
                                     : 'bg-zinc-900 text-zinc-600 border border-zinc-800'
                                     }`}

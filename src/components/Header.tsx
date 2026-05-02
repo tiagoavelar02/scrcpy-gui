@@ -22,7 +22,7 @@ export default function Header({ onThemeChange, currentTheme, binaryStatus, onDo
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="glass max-w-md w-full p-6 rounded-2xl border border-zinc-800 shadow-2xl animate-in fade-in zoom-in-95 duration-200 bg-zinc-950/90">
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
                                 <HelpCircle size={18} /> Manual Setup Guide
                             </h3>
                             <button onClick={() => setShowHelp(false)} className="text-zinc-500 hover:text-white transition-colors">
@@ -54,7 +54,7 @@ export default function Header({ onThemeChange, currentTheme, binaryStatus, onDo
 
                         <button
                             onClick={() => setShowHelp(false)}
-                            className="w-full mt-6 py-3 bg-primary text-on-primary rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-primary/90 active:scale-95"
+                            className="w-full mt-6 py-3 bg-primary text-on-primary rounded-xl text-[10px] font-semibold transition-all hover:bg-primary/90 active:scale-95"
                         >
                             Got it
                         </button>
@@ -67,7 +67,7 @@ export default function Header({ onThemeChange, currentTheme, binaryStatus, onDo
                 <div className="flex items-center gap-3 group/header">
                     <div className="flex items-center gap-1.5 grayscale opacity-50 group-hover/header:grayscale-0 group-hover/header:opacity-100 transition-all">
                         <Palette size={12} className="text-primary" />
-                        <span className="text-[9px] uppercase font-black text-zinc-500 tracking-tighter">Theme</span>
+                        <span className="text-[9px] font-semibold text-zinc-500">Theme</span>
                     </div>
                     <div className="flex items-center gap-2">
                         {[
@@ -83,7 +83,7 @@ export default function Header({ onThemeChange, currentTheme, binaryStatus, onDo
                                 className={`w-4 h-4 rounded-full transition-all hover:scale-125 active:scale-95 relative group/swatch ${currentTheme === t.id ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-110' : 'opacity-40 hover:opacity-100'}`}
                                 style={{ backgroundColor: t.color }}
                             >
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-[9px] font-bold uppercase tracking-widest text-white opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-[9px] font-bold text-white opacity-0 group-hover/swatch:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
                                     {t.label}
                                 </div>
                             </button>
@@ -95,15 +95,15 @@ export default function Header({ onThemeChange, currentTheme, binaryStatus, onDo
             {/* Branding - Center */}
             <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <div className="flex items-baseline gap-2">
-                    <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase italic">
+                    <h1 className="text-2xl md:text-3xl font-semibold text-white italic">
                         scrcpy <span className="text-primary not-italic">GUI</span>
                     </h1>
                     <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-zinc-800 rounded border border-zinc-700 mt-1">
-                        <span className="text-[10px] font-black text-zinc-400 tracking-wider">V{version}</span>
+                        <span className="text-[10px] font-semibold text-zinc-400 tracking-wider">V{version}</span>
                         <div className={`w-1.5 h-1.5 rounded-full ${binaryStatus.found ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse'}`} />
                     </div>
                 </div>
-                <p className="text-zinc-600 text-[9px] uppercase tracking-[0.3em] font-black mt-1 ml-0.5">
+                <p className="text-zinc-600 text-[9px] tracking-[0.3em] font-semibold mt-1 ml-0.5">
                     Mirror & Control Android <span className="text-zinc-800">//</span> Devices Easily
                 </p>
             </div>
@@ -117,7 +117,7 @@ export default function Header({ onThemeChange, currentTheme, binaryStatus, onDo
                         title="Get help setting up scrcpy"
                     >
                         <HelpCircle size={18} className="group-hover/help:rotate-12 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Setup Help</span>
+                        <span className="text-[10px] font-semibold">Setup Help</span>
                     </button>
                 )}
 
@@ -126,10 +126,10 @@ export default function Header({ onThemeChange, currentTheme, binaryStatus, onDo
 
                     <div className="flex flex-col min-w-[110px] relative z-10">
                         <div className="flex items-center gap-1.5 mb-1 text-zinc-500">
-                            <span className="text-[10px] uppercase font-black tracking-widest">Scrcpy Engine</span>
+                            <span className="text-[10px] font-semibold">Scrcpy Engine</span>
                             <div className={`w-1.5 h-1.5 rounded-full ${binaryStatus.found ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-[pulse_2s_infinite]' : 'bg-yellow-500 animate-pulse'}`} />
                         </div>
-                        <div className={`text-xs font-black uppercase tracking-tighter truncate max-w-[150px] ${binaryStatus.found ? 'text-emerald-400 animate-[pulse_4s_infinite]' : 'text-yellow-500'}`}>
+                        <div className={`text-xs font-semibold   truncate max-w-[150px] ${binaryStatus.found ? 'text-emerald-400 animate-[pulse_4s_infinite]' : 'text-yellow-500'}`}>
                             {isDownloading ? (
                                 `Syncing Components ${downloadProgress}%`
                             ) : binaryStatus.found ? (
@@ -146,7 +146,7 @@ export default function Header({ onThemeChange, currentTheme, binaryStatus, onDo
                     </div>
                     <div className="flex gap-2 items-center border-l border-zinc-800 pl-3 relative z-10">
                         {!binaryStatus.found && !isDownloading && (
-                            <button onClick={onDownload} className="px-2 py-0.5 bg-emerald-500 text-black border border-emerald-400 rounded-md text-[9px] font-black hover:bg-emerald-400 transition-all uppercase tracking-tighter shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-1">
+                            <button onClick={onDownload} className="px-2 py-0.5 bg-emerald-500 text-black border border-emerald-400 rounded-md text-[9px] font-semibold hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 flex items-center gap-1">
                                 <Download size={10} /> Install Core
                             </button>
                         )}

@@ -89,7 +89,7 @@ export default function ThemedModal({
                     </div>
 
                     {/* Content */}
-                    <h3 className="text-xl font-black italic uppercase tracking-tighter text-white mb-3">
+                    <h3 className="text-xl font-semibold italic text-white mb-3">
                         {title}
                     </h3>
                     <p className="text-zinc-400 text-sm font-medium leading-relaxed max-w-[280px]">
@@ -104,7 +104,7 @@ export default function ThemedModal({
                             if (onAction) onAction();
                             onClose();
                         }}
-                        className={`w-full py-4 bg-primary text-on-primary rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95 shadow-[0_10px_30px_-5px_rgba(139,92,246,0.3)]`}
+                        className={`w-full py-4 bg-primary text-on-primary rounded-2xl text-[10px] font-semibold  tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95 shadow-[0_10px_30px_-5px_rgba(139,92,246,0.3)]`}
                     >
                         {actionLabel}
                     </button>

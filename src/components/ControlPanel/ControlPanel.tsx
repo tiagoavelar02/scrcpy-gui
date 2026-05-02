@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Square, Monitor, Camera, LayoutGrid, ChevronDown, Lock, Unlock, Settings2, Video, ExternalLink, Keyboard, Mouse, MousePointer2 } from 'lucide-react';
+import { Play, Square, Monitor, Camera, LayoutGrid, ChevronDown, Lock, Unlock, Settings2, Video, ExternalLink, Keyboard, Mouse } from 'lucide-react';
 import { RenderDriverSupport, ScrcpyConfig } from '../../hooks/useScrcpy';
-import { invoke } from '@tauri-apps/api/core';
-import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import Tooltip from '../Tooltip';
 import { buildRendererOptions, mapRendererSelection } from './rendererOptions';
 
@@ -28,8 +26,8 @@ const BitrateControl = ({ value, onChange }: { value: number, onChange: (val: nu
     return (
         <div className="space-y-1">
             <div className="flex justify-between items-center h-4">
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Bitrate</label>
-                <span className="text-[10px] font-black text-primary tabular-nums">{localValue}M</span>
+                <label className="text-[9px] font-semibold text-zinc-500">Bitrate</label>
+                <span className="text-[10px] font-semibold text-primary tabular-nums">{localValue}M</span>
             </div>
             <input
                 type="range"
@@ -52,8 +50,8 @@ const VDSlider = ({ label, value, min, max, unit = "", onChange }: { label: stri
     return (
         <div className="space-y-1">
             <div className="flex justify-between items-center h-4">
-                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">{label}</label>
-                <span className="text-[10px] font-black text-primary tabular-nums">{localValue}{unit}</span>
+                <label className="text-[8px] font-semibold text-zinc-500">{label}</label>
+                <span className="text-[10px] font-semibold text-primary tabular-nums">{localValue}{unit}</span>
             </div>
             <input
                 type="range"
@@ -102,7 +100,7 @@ export default function ControlPanel({
 
         return (
             <div className={`relative ${className}`} ref={containerRef}>
-                {label && <label className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter mb-1 block">{label}</label>}
+                {label && <label className="text-[9px] font-semibold text-zinc-500 mb-1 block">{label}</label>}
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-2 py-1.5 text-[11px] text-zinc-300 flex items-center justify-between hover:border-primary/60 hover:bg-black transition-all group"
@@ -277,7 +275,7 @@ export default function ControlPanel({
         <main className="lg:col-span-6 space-y-4">
             <div className="glass p-3.5 rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-1.5">
-                    <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Capture Source</label>
+                    <label className="text-[10px] font-semibold text-zinc-400">Capture Source</label>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5 bg-zinc-950/50 p-1 rounded-xl border border-zinc-800">
                     <button
@@ -285,21 +283,21 @@ export default function ControlPanel({
                         className={`flex flex-col items-center gap-1.5 py-2.5 rounded-lg transition-all ${config.sessionMode === 'mirror' ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' : 'text-zinc-500 hover:text-primary hover:bg-zinc-950 transition-all'}`}
                     >
                         <Monitor size={18} strokeWidth={2.5} />
-                        <span className="text-[9px] font-black uppercase tracking-wider">Screen</span>
+                        <span className="text-[9px] font-semibold tracking-wider">Screen</span>
                     </button>
                     <button
                         onClick={() => handleChange('sessionMode', 'camera')}
                         className={`flex flex-col items-center gap-1.5 py-2.5 rounded-lg transition-all ${config.sessionMode === 'camera' ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' : 'text-zinc-500 hover:text-primary hover:bg-zinc-950 transition-all'}`}
                     >
                         <Camera size={18} strokeWidth={2.5} />
-                        <span className="text-[9px] font-black uppercase tracking-wider">Camera</span>
+                        <span className="text-[9px] font-semibold tracking-wider">Camera</span>
                     </button>
                     <button
                         onClick={() => handleChange('sessionMode', 'desktop')}
                         className={`flex flex-col items-center gap-1.5 py-2.5 rounded-lg transition-all ${config.sessionMode === 'desktop' ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' : 'text-zinc-500 hover:text-primary hover:bg-zinc-950 transition-all'}`}
                     >
                         <LayoutGrid size={18} strokeWidth={2.5} />
-                        <span className="text-[9px] font-black uppercase tracking-wider">Desktop</span>
+                        <span className="text-[9px] font-semibold tracking-wider">Desktop</span>
                     </button>
                 </div>
             </div>
@@ -307,14 +305,14 @@ export default function ControlPanel({
             <div className="glass p-3.5 rounded-xl space-y-3 transition-all duration-300 border border-zinc-800 bg-zinc-900/40 backdrop-blur-md relative z-20">
                 <div className="flex justify-between items-center border-b border-zinc-800/60 pb-1.5 mb-1">
                     <div className="flex items-center gap-3">
-                        <h2 className="text-[11px] font-black uppercase text-zinc-400 tracking-widest">Engine Configuration</h2>
+                        <h2 className="text-[11px] font-semibold text-zinc-400">Engine Configuration</h2>
                         <div className="flex gap-1.5">
                             {config.sessionMode === 'mirror' && (config.hidKeyboard || config.hidMouse) && config.otgPure && (
-                                <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-red-500/10 text-red-500/80 border border-red-500/20">
+                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-500/80 border border-red-500/20">
                                     OTG Only
                                 </span>
                             )}
-                            <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded border ${isRunning ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800/30 text-zinc-600 border-zinc-700/30'}`}>
+                            <span className={`text-[8px] font-bold  px-1.5 py-0.5 rounded border ${isRunning ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-zinc-800/30 text-zinc-600 border-zinc-700/30'}`}>
                                 {isRunning ? 'Active' : 'Ready'}
                             </span>
                         </div>
@@ -328,7 +326,7 @@ export default function ControlPanel({
                             <div className="space-y-3 p-3 rounded-xl border border-zinc-800 bg-zinc-950/20">
                                 <div className="flex items-center gap-2 mb-0.5">
                                     <Keyboard size={12} className="text-primary" />
-                                    <span className="text-[9px] font-black uppercase text-zinc-400 tracking-widest">Input Enhancements</span>
+                                    <span className="text-[9px] font-semibold text-zinc-400">Input Enhancements</span>
                                 </div>
                                 <p className="text-[8px] text-zinc-500 leading-relaxed mb-1">
                                     Control your phone using your computer's Mouse and Keyboard (OTG mode).
@@ -344,7 +342,7 @@ export default function ControlPanel({
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-1.5">
                                                     <Keyboard size={10} className={config.hidKeyboard ? 'text-primary' : 'text-zinc-500'} />
-                                                    <span className="text-[10px] font-bold uppercase text-zinc-300 tracking-wide group-hover:text-primary">HID Keyboard</span>
+                                                    <span className="text-[10px] font-bold text-zinc-300 tracking-wide group-hover:text-primary">HID Keyboard</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -359,7 +357,7 @@ export default function ControlPanel({
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-1.5">
                                                     <Mouse size={10} className={config.hidMouse ? 'text-primary' : 'text-zinc-500'} />
-                                                    <span className="text-[10px] font-bold uppercase text-zinc-300 tracking-wide group-hover:text-primary">HID Mouse</span>
+                                                    <span className="text-[10px] font-bold text-zinc-300 tracking-wide group-hover:text-primary">HID Mouse</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -373,7 +371,7 @@ export default function ControlPanel({
                                                     {config.otgPure && <div className="w-1 h-1 bg-white rounded-[1px]" />}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${config.otgPure ? 'text-red-400' : 'text-zinc-500 group-hover:text-red-400'}`}>Pure HID (No Mirror)</span>
+                                                    <span className={`text-[9px] font-bold  tracking-wider transition-colors ${config.otgPure ? 'text-red-400' : 'text-zinc-500 group-hover:text-red-400'}`}>Pure HID (No Mirror)</span>
                                                 </div>
                                             </div>
                                         </Tooltip>
@@ -400,7 +398,7 @@ export default function ControlPanel({
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex items-center justify-between">
-                                        <h4 className="text-[10px] font-black uppercase text-primary tracking-widest">Webcam Pro Tip</h4>
+                                        <h4 className="text-[10px] font-semibold text-primary">Webcam Pro Tip</h4>
                                         <a
                                             href="https://obsproject.com/"
                                             target="_blank"
@@ -430,14 +428,14 @@ export default function ControlPanel({
                                 <div className="space-y-1">
                                     <div className="flex justify-between items-center h-4">
                                         <div className="flex items-center gap-1.5">
-                                            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter">Camera Device</label>
+                                            <label className="text-[9px] font-semibold text-zinc-500">Camera Device</label>
                                             <Tooltip text="Select a specific lens (e.g. Ultra-Wide, Front) from the list." placement="top" />
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <Tooltip text="Click to scan for available camera lenses." placement="top" />
                                             <button
                                                 onClick={() => onListOptions("--list-cameras")}
-                                                className="text-[8px] font-black uppercase text-primary hover:text-white transition-colors"
+                                                className="text-[8px] font-semibold text-primary hover:text-white transition-colors"
                                             >
                                                 Refresh Lenses
                                             </button>
@@ -491,7 +489,7 @@ export default function ControlPanel({
                                 <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2">
                                     <div className="flex items-center gap-2">
                                         <Settings2 size={12} className="text-primary" />
-                                        <h3 className="text-[10px] font-black uppercase text-zinc-300 tracking-widest">Virtual Display Engine</h3>
+                                        <h3 className="text-[10px] font-semibold text-zinc-300">Virtual Display Engine</h3>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <button
@@ -500,7 +498,7 @@ export default function ControlPanel({
                                             title="Lock Aspect Ratio"
                                         >
                                             {config.aspectRatioLock ? <Lock size={10} /> : <Unlock size={10} />}
-                                            <span className="text-[8px] font-black uppercase tracking-tighter">Ratio Lock</span>
+                                            <span className="text-[8px] font-semibold">Ratio Lock</span>
                                         </button>
                                     </div>
                                 </div>
@@ -537,10 +535,10 @@ export default function ControlPanel({
                                     <div className="space-y-1">
                                         <div className="flex justify-between items-center h-4">
                                             <div className="flex items-center gap-1.5">
-                                                <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">UI Scaling (DPI)</label>
+                                                <label className="text-[8px] font-semibold text-zinc-500">UI Scaling (DPI)</label>
                                                 <Tooltip text="Lower DPI = Desktop/Tablet feel (larger UI). Higher DPI = Phone feel (smaller, denser UI)." placement="top" />
                                             </div>
-                                            <span className="text-[10px] font-black text-primary tabular-nums">{config.vdDpi || 420} DPI</span>
+                                            <span className="text-[10px] font-semibold text-primary tabular-nums">{config.vdDpi || 420} DPI</span>
                                         </div>
                                         <input
                                             type="range"
@@ -591,7 +589,7 @@ export default function ControlPanel({
                 {!isRunning ? (
                     <button
                         onClick={onStart}
-                        className="w-full py-3.5 rounded-2xl text-base font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group active:scale-[0.98]"
+                        className="w-full py-3.5 rounded-2xl text-base font-semibold tracking-[0.2em] transition-all relative overflow-hidden group active:scale-[0.98]"
                     >
                         {/* Pulse Glow Layer */}
                         <div className="absolute inset-0 bg-primary opacity-80 group-hover:opacity-100 transition-opacity" />
@@ -599,8 +597,8 @@ export default function ControlPanel({
 
                         <span className="relative z-10 flex items-center justify-center gap-3 text-on-primary">
                             <Play fill="currentColor" size={18} className="group-hover:scale-110 transition-transform" />
-                            {config.sessionMode === 'mirror' ? ((config.hidKeyboard || config.hidMouse) && config.otgPure ? 'Initialize OTG' : 'Start Mission') :
-                                config.sessionMode === 'camera' ? 'Engage Camera' : 'Eject to Desktop'}
+                            {config.sessionMode === 'mirror' ? ((config.hidKeyboard || config.hidMouse) && config.otgPure ? 'Initialize OTG' : 'Start Screen Mirroring') :
+                                config.sessionMode === 'camera' ? 'Start Camera' : 'Start Desktop Mode'}
                         </span>
                     </button>
                 ) : (
@@ -616,14 +614,14 @@ export default function ControlPanel({
                                 title={isConfiguringHover ? "Exit configuration mode and lock hover area." : "Enter configuration mode to move and resize the hover area."}
                             >
                                 <Settings2 size={16} className={isConfiguringHover ? 'animate-spin-slow' : 'group-hover:rotate-90 transition-transform duration-500'} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                <span className="text-[10px] font-semibold tracking-[0.2em]">
                                     {isConfiguringHover ? 'Lock Hover Area' : 'Configure Hover Area'}
                                 </span>
                             </button>
                         )}
                         <button
                             onClick={handleStopSession}
-                            className="w-full py-3.5 rounded-2xl text-base font-black uppercase tracking-[0.2em] transition-all relative overflow-hidden group active:scale-[0.98] border border-red-500/50"
+                            className="w-full py-3.5 rounded-2xl text-base font-semibold tracking-[0.2em] transition-all relative overflow-hidden group active:scale-[0.98] border border-red-500/50"
                         >
                             {/* Dark Red Gradient Background */}
                             <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-900 group-hover:from-red-500 group-hover:to-red-800 transition-all" />

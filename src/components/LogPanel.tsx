@@ -39,7 +39,7 @@ const LogPanel = memo(({ logs, onClear, onAddLog, onRunCommand }: LogPanelProps)
                 <div className="flex items-center gap-3">
                     <Terminal size={12} className="text-primary" />
                     <div className="flex items-center gap-2">
-                        <span className="font-black text-zinc-400 tracking-[0.2em] uppercase text-[9px]">System Console</span>
+                        <span className="font-semibold text-zinc-400 tracking-[0.2em] text-[9px]">Event Logs</span>
                         <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isLive ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]' : 'bg-zinc-700'}`} />
                     </div>
                 </div>
@@ -73,7 +73,7 @@ const LogPanel = memo(({ logs, onClear, onAddLog, onRunCommand }: LogPanelProps)
                                 console.error("Export failed:", e);
                             }
                         }}
-                        className="flex items-center gap-1.5 text-[9px] font-black uppercase text-zinc-500 hover:text-primary transition-all px-2 py-1 rounded-md hover:bg-white/5 active:scale-95"
+                        className="flex items-center gap-1.5 text-[9px] font-semibold text-zinc-500 hover:text-primary transition-all px-2 py-1 rounded-md hover:bg-white/5 active:scale-95"
                         title="Export diagnostic report to Downloads"
                     >
                         <Download size={10} />
@@ -81,7 +81,7 @@ const LogPanel = memo(({ logs, onClear, onAddLog, onRunCommand }: LogPanelProps)
                     </button>
                     <button
                         onClick={onClear}
-                        className="flex items-center gap-1.5 text-[9px] font-black uppercase text-zinc-500 hover:text-red-400 transition-all px-2 py-1 rounded-md hover:bg-white/5 active:scale-95"
+                        className="flex items-center gap-1.5 text-[9px] font-semibold text-zinc-500 hover:text-red-400 transition-all px-2 py-1 rounded-md hover:bg-white/5 active:scale-95"
                     >
                         <Trash2 size={10} />
                         Clear
@@ -93,7 +93,7 @@ const LogPanel = memo(({ logs, onClear, onAddLog, onRunCommand }: LogPanelProps)
             <div ref={containerRef} className="flex-1 overflow-y-auto p-4 pt-2 custom-scrollbar bg-[radial-gradient(circle_at_top_left,_rgba(var(--primary-rgb),0.03),_transparent)]">
                 {logs.length === 0 ? (
                     <div className="h-full flex items-center justify-center">
-                        <span className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest animate-pulse">Waiting for sequence...</span>
+                        <span className="text-[10px] text-zinc-700 font-bold animate-pulse">Waiting for sequence...</span>
                     </div>
                 ) : (
                     <div className="space-y-1">

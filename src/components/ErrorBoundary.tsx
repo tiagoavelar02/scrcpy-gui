@@ -62,12 +62,12 @@ export default class ErrorBoundary extends React.Component<Props, State> {
                         </div>
 
                         <div className="space-y-2">
-                            <h1 className="text-xl font-black uppercase tracking-widest text-white">System Breach Detected</h1>
+                            <h1 className="text-xl font-semibold text-white">An Error Occurred</h1>
                             <p className="text-sm text-zinc-400 font-medium">An unexpected error has crashed the mission control interface.</p>
                         </div>
 
                         <div className="bg-black/40 border border-zinc-800 rounded-xl p-4 text-left overflow-hidden">
-                            <p className="text-[10px] font-mono text-zinc-500 uppercase mb-2 tracking-tighter">Error Signature</p>
+                            <p className="text-[10px] font-mono text-zinc-500 mb-2">Error Signature</p>
                             <p className="text-[11px] font-mono text-red-400 break-all leading-relaxed">
                                 {this.state.error?.message || "Critical System Failure"}
                             </p>
@@ -76,21 +76,21 @@ export default class ErrorBoundary extends React.Component<Props, State> {
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => window.location.reload()}
-                                className="flex items-center justify-center gap-2 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+                                className="flex items-center justify-center gap-2 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl text-xs font-semibold transition-all active:scale-95"
                             >
                                 <RefreshCcw size={14} />
                                 Reboot
                             </button>
                             <button
                                 onClick={this.handleExportDiagnostics}
-                                className="flex items-center justify-center gap-2 py-3 bg-primary text-on-primary rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-primary/20 hover:opacity-90"
+                                className="flex items-center justify-center gap-2 py-3 bg-primary text-on-primary rounded-xl text-xs font-semibold transition-all active:scale-95 shadow-lg shadow-primary/20 hover:opacity-90"
                             >
                                 <Download size={14} />
                                 Export logs
                             </button>
                         </div>
 
-                        <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">Antigravity Recovery Engine v1.0</p>
+                        <p className="text-[9px] text-zinc-600 font-bold">Error Recovery</p>
                     </div>
                 </div>
             );

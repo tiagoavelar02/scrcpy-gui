@@ -42,7 +42,7 @@ export default function SessionBehavior({ config, setConfig }: SessionBehaviorPr
                     <Icon size={12} />
                 </div>
                 <div className="flex items-center gap-1.5 min-w-0">
-                    <span className={`text-[10px] font-bold uppercase tracking-tight truncate transition-colors ${checked ? (danger ? 'text-red-400' : 'text-zinc-200') : 'text-zinc-500 group-hover:text-zinc-400'}`}>
+                    <span className={`text-[10px] font-bold  tracking-tight truncate transition-colors ${checked ? (danger ? 'text-red-400' : 'text-zinc-200') : 'text-zinc-500 group-hover:text-zinc-400'}`}>
                         {label}
                     </span>
                     <div className="shrink-0">
@@ -61,7 +61,7 @@ export default function SessionBehavior({ config, setConfig }: SessionBehaviorPr
             <div className="glass p-3.5 rounded-2xl space-y-2 border border-zinc-800 bg-zinc-900/40 backdrop-blur-md">
                 <div className="flex items-center gap-2 border-b border-zinc-800/50 pb-1.5 mb-1">
                     <Settings2 size={12} className="text-zinc-500" />
-                    <h2 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Session Behavior</h2>
+                    <h2 className="text-[10px] font-semibold text-zinc-400">Session Behavior</h2>
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -121,11 +121,11 @@ export default function SessionBehavior({ config, setConfig }: SessionBehaviorPr
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                             <Folder size={12} className="text-zinc-500" />
-                            <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-tight">Record Path</span>
+                            <span className="text-[9px] font-bold text-zinc-500 tracking-tight">Record Path</span>
                         </div>
                         <button
                             onClick={handlePickFolder}
-                            className="text-[8px] font-black uppercase text-primary hover:text-white transition-colors"
+                            className="text-[8px] font-semibold text-primary hover:text-white transition-colors"
                         >
                             Change
                         </button>
