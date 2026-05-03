@@ -161,12 +161,15 @@ export default function ControlPanel({
             const monitors = await availableMonitors();
             
             for (let i = 0; i < monitors.length; i++) {
-                if (config.hoverMonitor !== undefined && config.hoverMonitor !== 'all' && config.hoverMonitor !== i.toString()) {
-                    continue;
-                }
-
                 const label = `hover-trigger-${i}`;
                 let win = await WebviewWindow.getByLabel(label);
+
+                if (config.hoverMonitor !== undefined && config.hoverMonitor !== 'all' && config.hoverMonitor !== i.toString()) {
+                    if (win) {
+                        await win.close();
+                    }
+                    continue;
+                }
                 
                 if (!win) {
                     const monitor = monitors[i];

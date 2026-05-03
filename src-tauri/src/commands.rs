@@ -631,6 +631,12 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
     let hid_keyboard = config.hid_keyboard.unwrap_or(false);
     let hid_mouse = config.hid_mouse.unwrap_or(false);
 
+    if let Some(shortcut_mod) = &config.shortcut_mod {
+        if !shortcut_mod.is_empty() {
+            args.push(format!("--shortcut-mod={}", shortcut_mod));
+        }
+    }
+
     if config.session_mode == "mirror" && (hid_keyboard || hid_mouse) && otg_pure {
         if config.device.contains('.') || config.device.contains(':') {
              args.push("--no-video".to_string());
@@ -667,12 +673,6 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
             args.push(format!("{}M", bitrate));
         }
         
-        if let Some(shortcut_mod) = &config.shortcut_mod {
-            if !shortcut_mod.is_empty() {
-                args.push(format!("--shortcut-mod={}", shortcut_mod));
-            }
-        }
-
         if let Some(audio) = config.audio_enabled { if !audio { args.push("--no-audio".to_string()); } }
         if let Some(aot) = config.always_on_top { if aot { args.push("--always-on-top".to_string()); } }
         if let Some(fs) = config.fullscreen { if fs { args.push("--fullscreen".to_string()); } }

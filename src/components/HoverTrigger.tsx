@@ -6,6 +6,7 @@ import { Move } from "lucide-react";
 
 const HoverTrigger = () => {
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isGrabbed, setIsGrabbed] = useState(false);
   const lastTriggerRef = useRef<number>(0);
   const window = getCurrentWindow();
 
@@ -75,8 +76,13 @@ const HoverTrigger = () => {
     if (now - lastTriggerRef.current > 500) {
       lastTriggerRef.current = now;
       console.log('[HOVER] Mouse detected, triggering focus...');
+      setIsGrabbed(true);
       invoke('focus_scrcpy_window').catch(console.error);
     }
+  };
+
+  const handleMouseLeave = () => {
+    setIsGrabbed(false);
   };
 
   return (
@@ -84,6 +90,7 @@ const HoverTrigger = () => {
       className={`h-screen w-screen flex flex-col items-center justify-center overflow-hidden select-none cursor-crosshair transition-colors ${isEditMode ? 'border-2 border-primary bg-primary/20 rounded-lg' : 'bg-transparent'}`}
       onMouseMove={handleTrigger}
       onMouseEnter={handleTrigger}
+      onMouseLeave={handleMouseLeave}
       onMouseDown={isEditMode ? () => window.startDragging() : undefined}
     >
       {isEditMode && (
@@ -95,15 +102,22 @@ const HoverTrigger = () => {
         </>
       )}
       
-      {/* Corner Icon: ⌞ (Visible only in non-edit mode) */}
+      {/* Icon: Pulse green dot when grabbed, Purple corner when not grabbed */}
       {!isEditMode && (
         <div className="absolute bottom-0 left-0 w-12 h-12 flex items-end justify-start p-1 group">
-          <div className="relative w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity">
-            {/* Vertical line of ⌞ */}
-            <div className="absolute left-0 bottom-0 w-[3px] h-full bg-primary rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"></div>
-            {/* Horizontal line of ⌞ */}
-            <div className="absolute left-0 bottom-0 h-[3px] w-full bg-primary rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"></div>
-          </div>
+          {isGrabbed ? (
+            <div className="relative w-8 h-8 flex items-center justify-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-ping absolute opacity-75"></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full relative"></div>
+            </div>
+          ) : (
+            <div className="relative w-8 h-8 opacity-50 group-hover:opacity-100 transition-opacity">
+              {/* Vertical line of ⌞ */}
+              <div className="absolute left-0 bottom-0 w-[3px] h-full bg-primary rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"></div>
+              {/* Horizontal line of ⌞ */}
+              <div className="absolute left-0 bottom-0 h-[3px] w-full bg-primary rounded-full shadow-[0_0_10px_rgba(139,92,246,0.5)]"></div>
+            </div>
+          )}
         </div>
       )}
     </div>
