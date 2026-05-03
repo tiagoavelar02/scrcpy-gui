@@ -1,5 +1,5 @@
 import React from 'react';
-import { Smartphone, RefreshCw, Usb, Wifi, UploadCloud, Zap } from 'lucide-react';
+import { Smartphone, RefreshCw, Wifi, UploadCloud } from 'lucide-react';
 
 export interface SidebarProps {
     devices: string[];
@@ -17,6 +17,7 @@ export interface SidebarProps {
     // History props
     historyDevices?: string[];
     clearHistory?: () => void;
+    pushProgress?: { progress: number, speed: string, eta?: string };
 }
 
 export default function Sidebar({
@@ -33,13 +34,13 @@ export default function Sidebar({
     isRefreshing,
     onFilePush,
     historyDevices = [],
-    clearHistory = () => { }
+    clearHistory = () => { },
+    pushProgress = { progress: 0, speed: '', eta: '' }
 }: SidebarProps) {
     const [activeTab, setActiveTab] = React.useState<'usb' | 'wireless'>('usb');
     const [connectIp, setConnectIp] = React.useState('');
     const [pairIp, setPairIp] = React.useState('');
     const [pairCode, setPairCode] = React.useState('');
-    const pairCodeRef = React.useRef<HTMLInputElement>(null);
 
     const handleConnect = async (ip: string) => {
         if (!ip) return;
@@ -47,245 +48,245 @@ export default function Sidebar({
     };
 
     return (
-        <aside className="lg:col-span-3 space-y-4">
-            <div className="glass p-4 rounded-xl space-y-4 border border-zinc-800 bg-zinc-900/40 backdrop-blur-md">
-                <div className="flex justify-between items-center border-b border-zinc-800/50 pb-2 mb-1">
-                    <h2 className="text-[11px] font-black uppercase tracking-widest flex items-center gap-2 text-zinc-400">
-                        <Smartphone size={14} className="text-primary" />
-                        Device Hub
-                    </h2>
-                    <div className="flex gap-2 items-center">
-                        <button
-                            onClick={onKillAdb}
-                            className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter text-zinc-600 hover:text-red-400 hover:bg-red-500/5 transition-all group/zap"
-                            title="Force kill all adb operations"
-                        >
-                            <Zap size={10} className="group-hover/zap:fill-red-400 group-hover/zap:scale-110 transition-all" />
-                            Kill ADB
-                        </button>
-                        <button
-                            onClick={onRefresh}
-                            disabled={isRefreshing}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800/50 hover:bg-primary/20 border border-zinc-800 hover:border-primary/30 rounded-md text-[9px] font-black uppercase tracking-widest text-primary hover:text-white transition-all group/refresh ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            <RefreshCw size={10} className={`group-hover/refresh:rotate-180 transition-transform duration-500 ${isRefreshing ? 'animate-spin' : ''}`} />
-                            {isRefreshing ? 'Syncing...' : 'Refresh'}
-                        </button>
+        <aside className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-700">
+            {/* Device Hub Card */}
+            <div className="glass-card p-5 rounded-[32px] space-y-4">
+                <div className="flex justify-between items-center px-1">
+                    <div>
+                        <h2 className="text-xl font-bold tracking-tight text-main">Devices</h2>
                     </div>
+                    <button
+                        onClick={onRefresh}
+                        disabled={isRefreshing}
+                        className={`p-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-full transition-all active:scale-90 ${isRefreshing ? 'opacity-50' : ''}`}
+                    >
+                        <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                    </button>
                 </div>
 
-                <div className="space-y-2">
-                    <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
-                        {devices.length === 0 ? (
-                            <div className="text-[10px] text-zinc-600 italic py-4 text-center border border-dashed border-zinc-800/50 rounded-lg bg-black/20">No devices detected</div>
-                        ) : (
-                            devices.map(d => {
-                                const isRunning = runningDevices.includes(d);
-                                const isSelected = selectedDevice === d;
-                                return (
-                                    <button
-                                        key={d}
-                                        onClick={() => onSelectDevice(d)}
-                                        className={`flex items-center gap-2.5 p-2.5 rounded-lg border transition-all text-left group ${isSelected ? 'bg-primary/5 border-primary/30' : 'bg-black/20 border-zinc-800/50 hover:border-zinc-700'}`}
-                                    >
-                                        <div className={`p-1.5 rounded-md transition-colors ${isSelected ? 'bg-primary text-on-primary' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}>
-                                            <Smartphone size={14} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`text-[11px] font-bold truncate tracking-tight ${isSelected ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`}>{d}</p>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                {isRunning ? (
-                                                    <span className="flex items-center gap-1">
-                                                        <span className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)] animate-pulse" />
-                                                        <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Live</span>
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Ready</span>
-                                                )}
-                                                {d.includes('.') ? (
-                                                    <span className="flex items-center gap-1 bg-primary/10 px-1 py-0.5 rounded border border-primary/20">
-                                                        <Wifi size={8} className="text-primary" />
-                                                        <span className="text-[7px] font-black text-primary uppercase tracking-tighter">Wi-Fi</span>
-                                                    </span>
-                                                ) : (
-                                                    <span className="flex items-center gap-1 bg-zinc-800 px-1 py-0.5 rounded border border-zinc-700">
-                                                        <Usb size={8} className="text-zinc-400" />
-                                                        <span className="text-[7px] font-black text-zinc-400 uppercase tracking-tighter">USB</span>
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </button>
-                                );
-                            })
-                        )}
-                    </div>
-
-                    <div className="bg-black/40 p-1 rounded-lg flex gap-1 border border-zinc-800/50">
-                        <button
-                            onClick={() => setActiveTab('usb')}
-                            className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 rounded-md transition-all ${activeTab === 'usb' ? 'bg-primary text-on-primary shadow-lg translate-y-[-1px]' : 'text-zinc-500 hover:text-zinc-300'}`}
-                        >
-                            <Usb size={11} /> USB
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('wireless')}
-                            className={`flex-1 py-1.5 text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 rounded-md transition-all ${activeTab === 'wireless' ? 'bg-primary text-on-primary shadow-lg translate-y-[-1px]' : 'text-zinc-500 hover:text-zinc-300'}`}
-                        >
-                            <Wifi size={11} /> Wireless
-                        </button>
-                    </div>
-
-                    {activeTab === 'usb' && (
-                        <div className="pt-1">
-                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1 h-1 bg-primary rounded-full" />
-                                    <span className="text-[9px] font-black uppercase text-primary tracking-widest">USB Setup Tip</span>
-                                </div>
-                                <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">
-                                    Enable <span className="text-zinc-300 underline decoration-primary/30 decoration-dashed">Developer Options</span> and <span className="text-zinc-300 underline decoration-primary/30 decoration-dashed">USB Debugging</span> on your phone.
-                                </p>
-                            </div>
+                {/* Device List */}
+                <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                    {devices.length === 0 ? (
+                        <div className="text-center py-6 px-4 border-2 border-dashed border-primary/10 rounded-2xl bg-primary/5">
+                            <Smartphone size={28} className="mx-auto text-primary/30 mb-2" />
+                            <p className="text-xs font-semibold text-secondary">No devices</p>
                         </div>
+                    ) : (
+                        devices.map(d => {
+                            const isRunning = runningDevices.includes(d);
+                            const isSelected = selectedDevice === d;
+                            return (
+                                <button
+                                    key={d}
+                                    onClick={() => onSelectDevice(d)}
+                                    className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition-all text-left group ${isSelected ? 'bg-primary border-primary shadow-lg shadow-primary/25' : 'bg-main/5 border-transparent hover:bg-main/10'}`}
+                                >
+                                    <div className={`p-1.5 rounded-xl transition-colors ${isSelected ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary group-hover:bg-primary/20'}`}>
+                                        <Smartphone size={18} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-xs font-bold truncate ${isSelected ? 'text-white' : 'text-main'}`}>{d}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            {isRunning && (
+                                                <span className="flex items-center gap-1">
+                                                    <span className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse" />
+                                                    <span className={`text-[9px] font-bold uppercase tracking-wider ${isSelected ? 'text-white/80' : 'text-emerald-500'}`}>Live</span>
+                                                </span>
+                                            )}
+                                            <span className={`text-[9px] font-bold uppercase tracking-wider ${isSelected ? 'text-white/60' : 'text-secondary'}`}>
+                                                {d.includes('.') ? 'Wi-Fi' : 'USB'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })
                     )}
+                </div>
 
-                    {activeTab === 'wireless' && (
-                        <div className="space-y-5 pt-2">
-                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-1.5">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1 h-1 bg-primary rounded-full" />
-                                    <span className="text-[9px] font-black uppercase text-primary tracking-widest">Wireless Setup Tip</span>
-                                </div>
-                                <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">
-                                    Connect device to <span className="text-zinc-300 underline decoration-primary/30 decoration-dashed">Same Wi-Fi</span> and enable <span className="text-zinc-300 underline decoration-primary/30 decoration-dashed">Wireless Debugging</span>.
+                {/* Connection Tabs */}
+                <div className="bg-main/5 p-1 rounded-2xl flex gap-1">
+                    <button
+                        onClick={() => setActiveTab('usb')}
+                        className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl transition-all ${activeTab === 'usb' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-secondary hover:text-main'}`}
+                    >
+                        USB
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('wireless')}
+                        className={`flex-1 py-1.5 text-[11px] font-bold rounded-xl transition-all ${activeTab === 'wireless' ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-secondary hover:text-main'}`}
+                    >
+                        Wi-Fi
+                    </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="px-1 animate-in fade-in duration-300">
+                    {activeTab === 'usb' ? (
+                        <div className="bg-primary/5 rounded-2xl p-3 border border-primary/10">
+                            <p className="text-[10px] text-secondary leading-tight">
+                                Enable <span className="font-bold text-main">Developer Options</span> and <span className="font-bold text-main">USB Debugging</span>.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="bg-primary/5 rounded-2xl p-3 border border-primary/10">
+                                <p className="text-[10px] text-secondary leading-tight">
+                                    Connect to <span className="font-bold text-main">Same Wi-Fi</span> and enable <span className="font-bold text-main">Wireless Debugging</span>.
                                 </p>
                             </div>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between border-b border-zinc-800/50 pb-1.5">
-                                    <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">IP Connect</span>
-                                    <div className="flex items-center gap-2 group cursor-pointer" onClick={() => onToggleAuto(!isAutoConnect)}>
-                                        <div className={`w-3 h-3 rounded-[2px] border flex items-center justify-center transition-colors ${isAutoConnect ? 'bg-primary border-primary' : 'border-zinc-700 group-hover:border-zinc-500'}`}>
-                                            {isAutoConnect && <div className="w-1.5 h-1.5 bg-black rounded-[0.5px]" />}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-main">Quick Connect</span>
+                                    <button
+                                        onClick={() => onToggleAuto(!isAutoConnect)}
+                                        className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-lg transition-colors ${isAutoConnect ? 'text-primary' : 'text-secondary'}`}
+                                    >
+                                        <div className={`w-7 h-3.5 rounded-full relative transition-colors ${isAutoConnect ? 'bg-primary' : 'bg-main/20 ring-1 ring-main/10 dark:bg-white/10 dark:ring-white/10'}`}>
+                                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white transition-all ${isAutoConnect ? 'left-4' : 'left-0.5'}`} />
                                         </div>
-                                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter">Auto</span>
-                                    </div>
+                                        <span className="text-[9px] font-bold uppercase">Auto</span>
+                                    </button>
                                 </div>
-
                                 <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <Wifi size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-600" />
-                                        <input
-                                            type="text"
-                                            placeholder="192.168.x.x:5555"
-                                            value={connectIp}
-                                            onChange={(e) => setConnectIp(e.target.value)}
-                                            className="w-full bg-black/40 border border-zinc-800 rounded-lg pl-7 pr-3 py-1.5 text-xs text-zinc-200 focus:border-primary/40 focus:bg-black/60 transition-all outline-none"
-                                        />
-                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="192.168..."
+                                        value={connectIp}
+                                        onChange={(e) => setConnectIp(e.target.value)}
+                                        className="flex-1 bg-main/5 border border-transparent rounded-xl px-3 py-1.5 text-xs focus:bg-white focus:border-primary/30 transition-all outline-none"
+                                    />
                                     <button
                                         onClick={() => handleConnect(connectIp)}
-                                        disabled={isRefreshing}
-                                        className={`px-4 bg-zinc-800 hover:bg-primary text-zinc-400 hover:text-on-primary rounded-lg text-[10px] font-black uppercase transition-all active:scale-95 ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        className="px-3 py-1.5 bg-primary text-white rounded-xl text-[10px] font-bold hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95"
                                     >
-                                        {isRefreshing ? '...' : 'Connect'}
+                                        Connect
                                     </button>
                                 </div>
-
                             </div>
 
-                            {/* Recent Devices History */}
+                            {/* Recent Devices */}
                             {historyDevices.length > 0 && (
-                                <div className="space-y-3 pt-1">
-                                    <div className="flex items-center justify-between border-b border-zinc-800/50 pb-1.5">
-                                        <span className="text-[9px] font-black uppercase text-primary/60 tracking-widest">Recent Devices</span>
-                                        <button
-                                            onClick={clearHistory}
-                                            className="text-[9px] text-zinc-600 hover:text-red-400 font-bold uppercase tracking-tighter transition-colors"
-                                        >
-                                            Clear
-                                        </button>
+                                <div className="space-y-1.5 pt-1 border-t border-main/5">
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-[9px] font-bold text-secondary uppercase tracking-widest">Recent</span>
+                                        <button onClick={clearHistory} className="text-[9px] font-bold text-primary hover:underline">Clear</button>
                                     </div>
-                                    <div className="space-y-2">
-                                        {historyDevices.map((ip, idx) => (
+                                    <div className="grid grid-cols-1 gap-1.5">
+                                        {historyDevices.slice(0, 2).map((ip, idx) => (
                                             <button
                                                 key={idx}
                                                 onClick={() => {
                                                     setConnectIp(ip);
                                                     handleConnect(ip);
                                                 }}
-                                                className="w-full flex items-center justify-between p-2 rounded-lg bg-zinc-800/20 border border-zinc-800/50 hover:bg-zinc-800/50 hover:border-zinc-700 transition-all group"
+                                                className="flex items-center justify-between p-2 rounded-xl bg-main/5 hover:bg-main/10 transition-all group"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <Wifi size={10} className="text-zinc-500 group-hover:text-zinc-300" />
-                                                    <span className="text-[10px] font-bold text-zinc-400 group-hover:text-zinc-200">{ip}</span>
+                                                    <Wifi size={12} className="text-primary/60" />
+                                                    <span className="text-[10px] font-semibold text-main/80">{ip}</span>
                                                 </div>
-                                                <div className="text-[8px] text-primary opacity-0 group-hover:opacity-100 uppercase font-black tracking-tighter">
-                                                    Connect
-                                                </div>
+                                                <span className="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">Connect</span>
                                             </button>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Pairing Setup */}
-                            <div className="space-y-3 pt-1">
-                                <span className="text-[9px] font-black uppercase text-zinc-500 tracking-widest border-b border-zinc-800/50 block pb-1.5">2. Pair Device (Android 11+)</span>
-                                <div className="grid grid-cols-2 gap-2">
+                            {/* Pairing (Android 11+) */}
+                            <div className="pt-2 border-t border-main/5 space-y-2">
+                                <div className="flex items-center justify-between px-1">
+                                    <span className="text-[9px] font-bold text-main uppercase tracking-widest">Pairing</span>
+                                    <span className="text-[8px] font-bold text-secondary uppercase tracking-tighter opacity-60">Android 11+</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-1.5">
                                     <input
                                         type="text"
                                         placeholder="IP:Port"
                                         value={pairIp}
                                         onChange={(e) => setPairIp(e.target.value)}
-                                        className="w-full bg-black/40 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 focus:border-primary/40 transition-all outline-none"
+                                        className="bg-main/5 border border-transparent rounded-xl px-2 py-1.5 text-[10px] focus:bg-white focus:border-primary/30 outline-none"
                                     />
                                     <input
-                                        ref={pairCodeRef}
                                         type="text"
-                                        placeholder="Pairing Code"
+                                        placeholder="Code"
                                         value={pairCode}
                                         onChange={(e) => setPairCode(e.target.value)}
-                                        className={`w-full bg-black/40 border rounded-lg px-2.5 py-1.5 text-xs text-zinc-200 transition-all outline-none ${pairIp ? 'border-amber-400/50 focus:border-amber-400' : 'border-zinc-800 focus:border-primary/40'}`}
+                                        className="bg-main/5 border border-transparent rounded-xl px-2 py-1.5 text-[10px] focus:bg-white focus:border-primary/30 outline-none"
                                     />
                                 </div>
                                 <button
-                                    onClick={async () => {
-                                        if (!pairIp || !pairCode || isRefreshing) return;
-                                        const res = await onPair(pairIp, pairCode);
-                                        if (res.success) {
-                                            const ipOnly = pairIp.split(':')[0];
-                                            const connectTarget = ipOnly + ":5555";
-                                            setConnectIp(connectTarget);
-                                            setPairCode('');
-                                            // Auto-connect attempt
-                                            handleConnect(connectTarget);
-                                        }
-                                    }}
-                                    disabled={isRefreshing}
-                                    className={`w-full py-1.5 border border-zinc-800 hover:border-primary/50 hover:bg-primary/5 text-zinc-500 hover:text-primary rounded-lg text-[10px] font-black uppercase transition-all active:scale-[0.98] ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    onClick={() => onPair(pairIp, pairCode)}
+                                    className="w-full py-1.5 bg-main/5 text-main hover:bg-main/10 rounded-xl text-[10px] font-bold transition-all"
                                 >
-                                    {isRefreshing ? 'Synchronizing...' : 'Start Pairing'}
+                                    Start Pairing
                                 </button>
                             </div>
-
                         </div>
                     )}
                 </div>
             </div>
 
+            {/* Flash/Push Widget */}
             <div
                 onClick={onFilePush}
-                className="glass p-5 rounded-xl flex flex-col items-center justify-center space-y-2 cursor-pointer hover:bg-primary/5 transition-all border-2 border-dashed border-zinc-800/50 hover:border-primary/30 group bg-zinc-900/40 backdrop-blur-md"
+                className={`glass-card rounded-[32px] overflow-hidden cursor-pointer transition-all group border-2 border-dashed h-[110px] relative ${
+                    pushProgress.progress > 0 
+                    ? 'border-primary/50 shadow-lg shadow-primary/20' 
+                    : 'border-primary/10 hover:border-primary/40 hover:bg-primary/5'
+                }`}
+                style={{ '--fill-level': `${pushProgress.progress}%` } as React.CSSProperties}
             >
-                <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
-                    <UploadCloud className="text-primary group-hover:scale-110 transition-transform" size={24} />
-                </div>
-                <div className="text-center">
-                    <h3 className="text-[11px] font-black text-zinc-300 uppercase tracking-widest">Flash / Push Files</h3>
-                    <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-tighter mt-1 opacity-60">Drag & drop ANY FILE OR APK</p>
-                </div>
+                {pushProgress.progress > 0 ? (
+                    <div className="fluid-tank h-full">
+                        {/* Water Fill Layer */}
+                        <div className="wave wave-back" />
+                        <div className="wave wave-front" />
+                        
+                        {/* Progress Text */}
+                        <div className="water-text text-white">
+                            <div className="flex flex-col items-center animate-in zoom-in-90 duration-300">
+                                <span className="text-3xl font-black tracking-tighter drop-shadow-md">
+                                    {Math.round(pushProgress.progress)}%
+                                </span>
+                                <div className="flex flex-col items-center gap-0.5 mt-1">
+                                    {pushProgress.speed && (
+                                        <span className="text-[9px] font-black uppercase tracking-widest opacity-90 bg-black/20 px-2 py-0.5 rounded-full backdrop-blur-md">
+                                            {pushProgress.speed}
+                                        </span>
+                                    )}
+                                    {pushProgress.eta && (
+                                        <span className="text-[8px] font-bold uppercase tracking-tight opacity-80 bg-black/10 px-1.5 rounded-sm">
+                                            {pushProgress.eta}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-full gap-2 p-4 relative overflow-hidden">
+                        {/* Idle Decorative Glow */}
+                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        
+                        <div className="p-3 bg-primary/10 rounded-2xl group-hover:bg-primary text-primary group-hover:text-white transition-all duration-500 shadow-sm relative z-10">
+                            <UploadCloud size={24} className="group-hover:scale-110 transition-transform duration-500" />
+                        </div>
+                        <div className="text-center relative z-10">
+                            <h3 className="text-sm font-bold text-main group-hover:text-primary transition-colors">Transfer Files</h3>
+                            <p className="text-[10px] text-secondary font-medium mt-0.5">Drag & drop or Click to browse</p>
+                        </div>
+                    </div>
+                )}
             </div>
+
+            {/* ADB Kill (Hidden subtle button) */}
+            <button
+                onClick={onKillAdb}
+                className="w-full py-1 text-[9px] font-bold text-secondary/30 hover:text-red-500/50 transition-colors uppercase tracking-widest"
+            >
+                Reset ADB Bridge
+            </button>
         </aside>
     );
 }

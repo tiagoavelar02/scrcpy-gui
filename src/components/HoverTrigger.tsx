@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow, LogicalPosition, LogicalSize } from "@tauri-apps/api/window";
-import { Move, CornerBottomLeft } from "lucide-react";
+import { getCurrentWindow, LogicalPosition, LogicalSize, currentMonitor } from "@tauri-apps/api/window";
+import { Move } from "lucide-react";
 
 const HoverTrigger = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const lastTriggerRef = useRef<number>(0);
-  const window = getCurrentWindow();
+  const appWindow = getCurrentWindow();
 
   useEffect(() => {
     document.body.style.backgroundColor = 'transparent';
@@ -27,7 +27,7 @@ const HoverTrigger = () => {
     // Reliable self-close on session end
     const unlistenClose = listen('close-hover-triggers', () => {
       console.log('[HOVER] Closing window via event');
-      window.close();
+      appWindow.close();
     });
 
     return () => {
@@ -39,17 +39,17 @@ const HoverTrigger = () => {
 
   const resetToCorner = async () => {
     try {
-      const monitor = await window.currentMonitor();
+      const monitor = await currentMonitor();
       if (monitor) {
         console.log('[HOVER] Resetting to corner for monitor:', monitor.name);
-        const { width, height } = monitor.size;
+        const { height } = monitor.size;
         const scale = monitor.scaleFactor;
         const logicalHeight = height / scale;
         const posX = monitor.position.x / scale;
         const posY = (monitor.position.y / scale) + logicalHeight - 60;
         
-        await window.setSize(new LogicalSize(60, 60));
-        await window.setPosition(new LogicalPosition(posX, posY));
+        await appWindow.setSize(new LogicalSize(60, 60));
+        await appWindow.setPosition(new LogicalPosition(posX, posY));
       }
     } catch (e) {
       console.error("[HOVER] Failed to position corner:", e);
@@ -72,7 +72,7 @@ const HoverTrigger = () => {
       className={`h-screen w-screen flex flex-col items-center justify-center overflow-hidden select-none cursor-crosshair transition-colors ${isEditMode ? 'border-2 border-primary bg-primary/20 rounded-lg' : 'bg-transparent'}`}
       onMouseMove={handleTrigger}
       onMouseEnter={handleTrigger}
-      onMouseDown={isEditMode ? () => window.startDragging() : undefined}
+      onMouseDown={isEditMode ? () => appWindow.startDragging() : undefined}
     >
       {isEditMode && (
         <>

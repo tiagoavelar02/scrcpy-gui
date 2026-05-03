@@ -5,6 +5,7 @@
   "windows": [
     "main",
     "splashscreen",
+    "hover-trigger",
     "hover-trigger-*"
   ],
   "permissions": [

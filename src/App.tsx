@@ -7,7 +7,6 @@ import LogPanel from "./components/LogPanel";
 import Header from "./components/Header";
 import SessionBehavior from "./components/SessionBehavior";
 import ShortcutsPanel from "./components/ShortcutsPanel";
-import Footer from "./components/Footer";
 import ErrorBoundary from "./components/ErrorBoundary";
 import OnboardingModal from "./components/OnboardingModal";
 import ThemedModal from "./components/ThemedModal";
@@ -71,7 +70,6 @@ function MainApp() {
     downloadProgress,
     pairDevice,
     connectDevice,
-    listScrcpyOptions,
     runTerminalCommand,
     isAutoConnect,
     toggleAutoConnect,
@@ -91,7 +89,8 @@ function MainApp() {
     clearHistory,
     isOnboardingOpen,
     setIsOnboardingOpen,
-    completeOnboarding
+    completeOnboarding,
+    pushProgress
   } = useScrcpy();
 
   const [alertState, setAlertState] = useState<{
@@ -138,7 +137,7 @@ function MainApp() {
 
   useEffect(() => {
     // Global Drag and Drop Listener (re-bind only if activeDevice changes)
-    const unlisten = getCurrentWindow().listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
+    const unlisten = getCurrentWindow().listen<{ paths: string[] }>("tauri://drag-drop", async (event) => {
       if (!activeDevice) {
         setLogs(prev => [...prev.slice(-100), "[WARN] No device selected for drag-and-drop operation."]);
         return;
@@ -146,7 +145,9 @@ function MainApp() {
 
       const paths = event.payload.paths;
       if (paths && paths.length > 0) {
-        paths.forEach(path => handleFileOperation(path));
+        for (const path of paths) {
+          await handleFileOperation(path);
+        }
       }
     });
 
@@ -218,9 +219,11 @@ function MainApp() {
 
       if (selected) {
         if (Array.isArray(selected)) {
-          selected.forEach(path => handleFileOperation(path));
+          for (const path of selected) {
+            await handleFileOperation(path);
+          }
         } else {
-          handleFileOperation(selected);
+          await handleFileOperation(selected);
         }
       }
     } catch (e) {
@@ -255,17 +258,16 @@ function MainApp() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen text-zinc-200 font-sans selection:bg-primary selection:text-white overflow-hidden flex flex-col transition-opacity duration-1000 ease-in-out" style={{ backgroundColor: 'var(--bg-base)', opacity: 0, animation: 'fadeIn 0.8s ease-out forwards' }}>
-        <style>{`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
-        <div className="fixed inset-0 opacity-20 pointer-events-none z-0"></div>
-        <div className="fixed top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/30 via-transparent to-transparent pointer-events-none z-0"></div>
+      <div className="min-h-screen font-sans selection:bg-primary/30 selection:text-primary overflow-hidden flex flex-col transition-all duration-500" style={{ backgroundColor: 'var(--bg-base)' }}>
+        
+        {/* Modern Canvas Background */}
+        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+          <div className="canvas-bg absolute inset-0 transition-opacity duration-1000" />
+          <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full animate-pulse" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+        </div>
 
-        <div className="relative z-10 flex flex-col h-screen transition-all duration-700">
+        <div className="relative z-10 flex flex-col h-screen">
           <Header
             onThemeChange={setTheme}
             currentTheme={theme}
@@ -278,10 +280,13 @@ function MainApp() {
             version={appVersion}
           />
 
-          <div className="flex-1 overflow-y-auto flex flex-col pt-6 custom-scrollbar">
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 px-6 pb-6">
-              <div className="lg:col-span-3 flex flex-col">
-                <div className="transition-all duration-700">
+          <main className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-6">
+            <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              
+              {/* Top Row: Device Hub, Controls, & Shortcuts */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* LEFT COLUMN: Sidebar + Behavior */}
+                <div className="lg:col-span-4 xl:col-span-3 space-y-6">
                   <Sidebar
                     devices={devices}
                     runningDevices={runningDevices}
@@ -297,12 +302,13 @@ function MainApp() {
                     onFilePush={handleFileBrowse}
                     historyDevices={historyDevices}
                     clearHistory={clearHistory}
+                    pushProgress={pushProgress}
                   />
+                  <SessionBehavior config={config} setConfig={setConfig} />
                 </div>
-              </div>
 
-              <div className="lg:col-span-6 flex flex-col gap-6 relative z-20">
-                <div className="relative z-30">
+                {/* MIDDLE & RIGHT COMBINED: Primary Controls + Shortcuts */}
+                <div className="lg:col-span-8 xl:col-span-9 space-y-6">
                   <ControlPanel
                     config={config}
                     setConfig={setConfig}
@@ -311,31 +317,27 @@ function MainApp() {
                     isRunning={sessionRunning}
                     detectedCameras={detectedCameras}
                     renderDriverSupport={renderDriverSupport}
-                    onListOptions={(arg) => {
-                      if (activeDevice) {
-                        listScrcpyOptions(activeDevice, arg);
-                      }
-                    }}
                   />
+                  <div className="h-[280px]">
+                    <ShortcutsPanel />
+                  </div>
                 </div>
-                <div className="relative z-10">
-                  <LogPanel
-                    logs={logs}
-                    onClear={clearLogs}
-                    onAddLog={(msg) => setLogs((prev: string[]) => [...prev.slice(-100), msg])}
-                    onRunCommand={runTerminalCommand}
-                  />
+
+                {/* BOTTOM ROW: System Console (Full Width) */}
+                <div className="lg:col-span-12 xl:col-span-12">
+                  <div className="min-h-[300px]">
+                    <LogPanel
+                      logs={logs}
+                      onClear={clearLogs}
+                      onAddLog={(msg) => setLogs((prev: string[]) => [...prev.slice(-100), msg])}
+                      onRunCommand={runTerminalCommand}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="lg:col-span-3 flex flex-col gap-6">
-                <SessionBehavior config={config} setConfig={setConfig} />
-                <ShortcutsPanel />
-              </div>
             </div>
-
-            <Footer version={appVersion} />
-          </div>
+          </main>
         </div>
 
         <OnboardingModal
