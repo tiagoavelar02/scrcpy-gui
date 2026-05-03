@@ -119,6 +119,21 @@ export default function SessionBehavior({ config, setConfig }: SessionBehaviorPr
 
                 <div className="pt-2 border-t border-zinc-800/50 space-y-2">
                     <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Release Hotkey</label>
+                        <select
+                            value={config.shortcutMod || 'lalt,ralt'}
+                            onChange={(e) => handleChange('shortcutMod', e.target.value)}
+                            className="bg-black/40 border border-zinc-800/50 rounded-lg px-2 py-1 text-[9px] text-zinc-300 outline-none hover:border-primary/50 transition-colors focus:border-primary"
+                        >
+                            <option value="lalt,ralt">Alt</option>
+                            <option value="lsuper,rsuper">Super/Win</option>
+                            <option value="lctrl,rctrl">Ctrl</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="pt-2 border-t border-zinc-800/50 space-y-2">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                             <Folder size={12} className="text-zinc-500" />
                             <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-tight">Record Path</span>

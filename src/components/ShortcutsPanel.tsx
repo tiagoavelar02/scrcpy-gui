@@ -1,6 +1,12 @@
 import { Maximize, Home, ChevronLeft, List, Power, RotateCw, Clipboard, MonitorOff, Keyboard } from 'lucide-react';
 
-export default function ShortcutsPanel() {
+interface ShortcutsPanelProps {
+    shortcutMod?: string;
+}
+
+export default function ShortcutsPanel({ shortcutMod }: ShortcutsPanelProps) {
+    const displayMod = shortcutMod === 'lsuper,rsuper' ? 'Super' : shortcutMod === 'lctrl,rctrl' ? 'Ctrl' : 'Alt';
+
     const shortcuts = [
         { label: "Full", key: "F", icon: Maximize },
         { label: "Home", key: "H", icon: Home },
@@ -16,7 +22,7 @@ export default function ShortcutsPanel() {
         <div className="glass p-3.5 rounded-2xl space-y-2 border border-zinc-800 bg-zinc-900/40 backdrop-blur-md">
             <div className="flex items-center gap-2 border-b border-zinc-800/50 pb-1.5 mb-1">
                 <Keyboard size={12} className="text-zinc-500" />
-                <h2 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Shortcuts (Alt +)</h2>
+                <h2 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">Shortcuts ({displayMod} +)</h2>
             </div>
             <div className="grid grid-cols-4 gap-2">
                 {shortcuts.map(s => (

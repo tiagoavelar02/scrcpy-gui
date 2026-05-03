@@ -1,0 +1,84 @@
+--- src/components/ControlPanel/ControlPanel.tsx
++++ src/components/ControlPanel/ControlPanel.tsx
+@@ -1,4 +1,4 @@
+-import { useState, useEffect, useRef } from 'react';
++import { useState, useEffect, useRef, useMemo } from 'react';
+ import { Play, Square, Monitor, Camera, LayoutGrid, ChevronDown, Lock, Unlock, Settings2, Video, ExternalLink, Keyboard, Mouse, MousePointer2 } from 'lucide-react';
+ import { RenderDriverSupport, ScrcpyConfig } from '../../hooks/useScrcpy';
+ import { invoke } from '@tauri-apps/api/core';
+@@ -141,6 +141,18 @@
+
+     const [isConfiguringHover, setIsConfiguringHover] = useState(false);
++    const [monitorsCount, setMonitorsCount] = useState(1);
++
++    useEffect(() => {
++        const checkMonitors = async () => {
++            try {
++                const { availableMonitors } = await import('@tauri-apps/api/window');
++                const monitors = await availableMonitors();
++                setMonitorsCount(monitors.length);
++            } catch (e) {
++                console.error(e);
++            }
++        };
++        checkMonitors();
++    }, []);
+
+     // Auto-open hover areas when Pure HID session starts
+@@ -149,6 +161,10 @@
+             const monitors = await availableMonitors();
+
+             for (let i = 0; i < monitors.length; i++) {
++                if (config.hoverMonitor !== undefined && config.hoverMonitor !== 'all' && config.hoverMonitor !== i.toString()) {
++                    continue;
++                }
++
+                 const label = `hover-trigger-${i}`;
+                 let win = await WebviewWindow.getByLabel(label);
+
+@@ -621,21 +637,34 @@
+                     <div className="flex flex-col gap-2 relative z-10 w-full">
+                         {(config.hidKeyboard || config.hidMouse) && config.otgPure && (
+-                            <button
+-                                onClick={toggleHoverConfig}
+-                                className={`w-full py-3 rounded-2xl border transition-all flex items-center justify-center gap-2 group ${
+-                                    isConfiguringHover
+-                                        ? 'bg-primary border-primary text-on-primary shadow-[0_0_30px_rgba(139,92,246,0.4)]'
+-                                        : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-primary hover:border-primary/50'
+-                                }`}
+-                                title={isConfiguringHover ? "Exit configuration mode and lock hover area." : "Enter configuration mode to move and resize the hover area."}
+-                            >
+-                                <Settings2 size={16} className={isConfiguringHover ? 'animate-spin-slow' : 'group-hover:rotate-90 transition-transform duration-500'} />
+-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">
+-                                    {isConfiguringHover ? 'Lock Hover Area' : 'Configure Hover Area'}
+-                                </span>
+-                            </button>
++                            <div className="flex gap-2">
++                                <button
++                                    onClick={toggleHoverConfig}
++                                    className={`flex-1 py-3 rounded-2xl border transition-all flex items-center justify-center gap-2 group ${
++                                        isConfiguringHover
++                                            ? 'bg-primary border-primary text-on-primary shadow-[0_0_30px_rgba(139,92,246,0.4)]'
++                                            : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-primary hover:border-primary/50'
++                                    }`}
++                                    title={isConfiguringHover ? "Exit configuration mode and lock hover area." : "Enter configuration mode to move and resize the hover area."}
++                                >
++                                    <Settings2 size={16} className={isConfiguringHover ? 'animate-spin-slow' : 'group-hover:rotate-90 transition-transform duration-500'} />
++                                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">
++                                        {isConfiguringHover ? 'Lock Hover Area' : 'Configure Hover'}
++                                    </span>
++                                </button>
++                                <select
++                                    value={config.hoverMonitor || 'all'}
++                                    onChange={(e) => handleChange('hoverMonitor', e.target.value)}
++                                    className="bg-zinc-950 border border-zinc-800 rounded-2xl px-3 py-3 text-[10px] text-zinc-300 outline-none hover:border-primary/50 transition-colors focus:border-primary uppercase font-bold tracking-wider"
++                                    title="Select monitor for hover area"
++                                >
++                                    <option value="all">All Monitors</option>
++                                    {Array.from({ length: monitorsCount }).map((_, i) => (
++                                        <option key={i} value={i.toString()}>Monitor {i + 1}</option>
++                                    ))}
++                                </select>
++                            </div>
+                         )}
+                         <button

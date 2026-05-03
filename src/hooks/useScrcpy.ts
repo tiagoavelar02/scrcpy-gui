@@ -39,6 +39,8 @@ export interface ScrcpyConfig {
     rotation?: string;
     res?: string;
     aspectRatioLock?: boolean;
+    shortcutMod?: string;
+    hoverMonitor?: string;
     hidKeyboard?: boolean;
     hidMouse?: boolean;
     renderDriver?: string;
@@ -81,6 +83,8 @@ export function useScrcpy() {
         vdHeight: 1080,
         vdDpi: 420,
         aspectRatioLock: true,
+        shortcutMod: "lalt,ralt",
+        hoverMonitor: "all",
         hidKeyboard: false,
         hidMouse: false
     });

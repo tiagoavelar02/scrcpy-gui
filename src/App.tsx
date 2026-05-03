@@ -330,7 +330,7 @@ function MainApp() {
 
               <div className="lg:col-span-3 flex flex-col gap-6">
                 <SessionBehavior config={config} setConfig={setConfig} />
-                <ShortcutsPanel />
+                <ShortcutsPanel shortcutMod={config.shortcutMod} />
               </div>
             </div>
 

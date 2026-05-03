@@ -1,0 +1,19 @@
+--- src/components/HoverTrigger.tsx
++++ src/components/HoverTrigger.tsx
+@@ -43,7 +43,15 @@
+       // Fallback for currentMonitor missing in this version
+       const { availableMonitors } = await import('@tauri-apps/api/window');
+       const monitors = await availableMonitors();
+-      const monitor = monitors.length > 0 ? monitors[0] : null;
++
++      // Try to find the monitor this window is currently on
++      let monitor = monitors.length > 0 ? monitors[0] : null;
++      try {
++          const current = await window.currentMonitor();
++          if (current) {
++              monitor = current;
++          }
++      } catch (e) {}
+
+       if (monitor) {
+         console.log('[HOVER] Resetting to corner for monitor:', monitor.name);

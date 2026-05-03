@@ -1,0 +1,11 @@
+--- src/components/HoverTrigger.tsx
++++ src/components/HoverTrigger.tsx
+@@ -46,7 +46,7 @@
+       // Try to find the monitor this window is currently on
+       let monitor = monitors.length > 0 ? monitors[0] : null;
+       try {
+-          const current = await window.currentMonitor();
++          const current = await (window as any).currentMonitor();
+           if (current) {
+               monitor = current;
+           }

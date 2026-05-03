@@ -11,13 +11,13 @@ const HoverTrigger = () => {
 
   useEffect(() => {
     document.body.style.backgroundColor = 'transparent';
-    
+
     // Listen for configuration toggle
     const unlistenConfig = listen('toggle-hover-config', (event) => {
       const mode = event.payload as boolean;
       console.log('[HOVER] Config toggle:', mode);
       setIsEditMode(mode);
-      
+
       if (!mode) {
         // Reset to corner when exiting edit mode
         resetToCorner();
@@ -42,15 +42,7 @@ const HoverTrigger = () => {
       // Fallback for currentMonitor missing in this version
       const { availableMonitors } = await import('@tauri-apps/api/window');
       const monitors = await availableMonitors();
-
-      // Try to find the monitor this window is currently on
-      let monitor = monitors.length > 0 ? monitors[0] : null;
-      try {
-          const current = await (window as any).currentMonitor();
-          if (current) {
-              monitor = current;
-          }
-      } catch (e) {}
+      const monitor = monitors.length > 0 ? monitors[0] : null;
 
       if (monitor) {
         console.log('[HOVER] Resetting to corner for monitor:', monitor.name);
@@ -59,7 +51,7 @@ const HoverTrigger = () => {
         const logicalHeight = height / scale;
         const posX = monitor.position.x / scale;
         const posY = (monitor.position.y / scale) + logicalHeight - 60;
-        
+
         await window.setSize(new LogicalSize(60, 60));
         await window.setPosition(new LogicalPosition(posX, posY));
       }
@@ -69,7 +61,7 @@ const HoverTrigger = () => {
   };
 
   const handleTrigger = () => {
-    if (isEditMode) return; 
+    if (isEditMode) return;
 
     const now = Date.now();
     if (now - lastTriggerRef.current > 500) {
@@ -80,7 +72,7 @@ const HoverTrigger = () => {
   };
 
   return (
-    <div 
+    <div
       className={`h-screen w-screen flex flex-col items-center justify-center overflow-hidden select-none cursor-crosshair transition-colors ${isEditMode ? 'border-2 border-primary bg-primary/20 rounded-lg' : 'bg-transparent'}`}
       onMouseMove={handleTrigger}
       onMouseEnter={handleTrigger}
@@ -94,7 +86,7 @@ const HoverTrigger = () => {
           </span>
         </>
       )}
-      
+
       {/* Corner Icon: ⌞ (Visible only in non-edit mode) */}
       {!isEditMode && (
         <div className="absolute bottom-0 left-0 w-12 h-12 flex items-end justify-start p-1 group">
