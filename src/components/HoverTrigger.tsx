@@ -74,20 +74,23 @@ const HoverTrigger = () => {
 
     const now = Date.now();
     if (now - lastTriggerRef.current > 500) {
-      lastTriggerRef.current = now;
-      console.log('[HOVER] Mouse detected, triggering focus...');
-      invoke('focus_scrcpy_window').catch(console.error);
+      if (!isGrabbed) {
+        lastTriggerRef.current = now;
+        console.log('[HOVER] Mouse detected, triggering focus...');
+        setIsGrabbed(true);
+        invoke('focus_scrcpy_window').catch(console.error);
+      }
     }
-
-    // We set isGrabbed to true on any mouse move/enter inside the area.
-    // When scrcpy grabs the mouse, the cursor effectively leaves our window.
-    // If it doesn't trigger mouseleave properly because of the grab, it will
-    // still show the green dot. And when it finally leaves naturally it resets.
-    setIsGrabbed(true);
   };
 
   const handleMouseLeave = () => {
-    setIsGrabbed(false);
+    // When scrcpy grabs the mouse (via our trigger), a synthetic mouseleave
+    // event can fire almost immediately because the OS moves the cursor
+    // or captures it. We want to ignore that immediate leave so the dot stays.
+    const now = Date.now();
+    if (now - lastTriggerRef.current > 250) {
+      setIsGrabbed(false);
+    }
   };
 
   return (
