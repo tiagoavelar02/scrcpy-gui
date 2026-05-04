@@ -197,8 +197,8 @@ pub async fn adb_connect(window: Window, ip: String, custom_path: Option<String>
         .spawn()
         .map_err(|e| format!("Failed to start adb connect: {}", e))?;
 
-    // Implement 5s timeout
-    let output_res = timeout(Duration::from_secs(5), child.wait_with_output()).await;
+    // Implement 10s timeout
+    let output_res = timeout(Duration::from_secs(10), child.wait_with_output()).await;
 
     match output_res {
         Ok(Ok(output)) => {
@@ -214,7 +214,7 @@ pub async fn adb_connect(window: Window, ip: String, custom_path: Option<String>
         }
         Ok(Err(e)) => Err(e.to_string()),
         Err(_) => {
-            let _ = window.emit("scrcpy-log", format!("[SYSTEM] Connection to {} timed out after 5s.", ip));
+            let _ = window.emit("scrcpy-log", format!("[SYSTEM] Connection to {} timed out after 10s.", ip));
             Ok(json!({ "success": false, "message": "connection timed out" }))
         }
     }
