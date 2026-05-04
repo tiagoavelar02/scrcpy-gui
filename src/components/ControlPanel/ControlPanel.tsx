@@ -79,6 +79,21 @@ export default function ControlPanel({
 
     const rendererOptions = buildRendererOptions(renderDriverSupport);
 
+    const [monitorsCount, setMonitorsCount] = useState(0);
+
+    useEffect(() => {
+        const fetchMonitors = async () => {
+            try {
+                const { availableMonitors } = await import('@tauri-apps/api/window');
+                const monitors = await availableMonitors();
+                setMonitorsCount(monitors.length);
+            } catch (e) {
+                console.error("Failed to fetch monitors:", e);
+            }
+        };
+        fetchMonitors();
+    }, []);
+
     const CustomSelect = ({ value, onChange, options, label, className = "" }: { value: any, onChange: (val: any) => void, options: { value: any, label: string }[], label?: string, className?: string }) => {
         const [isOpen, setIsOpen] = useState(false);
         const containerRef = useRef<HTMLDivElement>(null);
@@ -129,16 +144,20 @@ export default function ControlPanel({
     const [isConfiguringHover, setIsConfiguringHover] = useState(false);
 
     useEffect(() => {
-        if (isRunning && config.otgPure && (config.hidKeyboard || config.hidMouse)) {
-            spawnHoverAreas();
-        } else {
-            const closeTriggers = async () => {
-                const { emit } = await import('@tauri-apps/api/event');
+        const updateHoverAreas = async () => {
+            const { emit } = await import('@tauri-apps/api/event');
+            if (isRunning && config.otgPure && (config.hidKeyboard || config.hidMouse)) {
+                // Close existing ones first to ensure clean state on monitor change
                 await emit('close-hover-triggers');
-            };
-            closeTriggers();
-        }
-    }, [isRunning, config.otgPure, config.hidKeyboard, config.hidMouse]);
+                // Small delay to let them close
+                await new Promise(r => setTimeout(r, 100));
+                spawnHoverAreas();
+            } else {
+                await emit('close-hover-triggers');
+            }
+        };
+        updateHoverAreas();
+    }, [isRunning, config.otgPure, config.hidKeyboard, config.hidMouse, config.hoverMonitor]);
 
     const spawnHoverAreas = async () => {
         try {
@@ -146,9 +165,16 @@ export default function ControlPanel({
             const { availableMonitors } = await import('@tauri-apps/api/window');
             const monitors = await availableMonitors();
             
+            const selectedMonitor = config.hoverMonitor || 'all';
+            
             for (let i = 0; i < monitors.length; i++) {
                 const label = `hover-trigger-${i}`;
                 let win = await WebviewWindow.getByLabel(label);
+
+                if (selectedMonitor !== 'all' && selectedMonitor !== i.toString()) {
+                    if (win) await win.close();
+                    continue;
+                }
                 
                 if (!win) {
                     const monitor = monitors[i];
@@ -334,6 +360,23 @@ export default function ControlPanel({
                                         <div className={`w-8 h-4 rounded-full relative transition-colors ${config.otgPure ? 'bg-white/30' : 'bg-main/20 ring-1 ring-main/10 dark:bg-white/10 dark:ring-white/10'}`}>
                                             <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${config.otgPure ? 'left-4.5' : 'left-0.5'}`} />
                                         </div>
+                                    </div>
+                                )}
+
+                                {(config.hidKeyboard || config.hidMouse) && config.otgPure && monitorsCount > 1 && (
+                                    <div className="pt-2 animate-in slide-in-from-top-2 duration-300">
+                                        <CustomSelect
+                                            label="Hover Monitor"
+                                            value={config.hoverMonitor || 'all'}
+                                            onChange={(val) => handleChange('hoverMonitor', val)}
+                                            options={[
+                                                { value: 'all', label: 'All Monitors' },
+                                                ...Array.from({ length: monitorsCount }).map((_, i) => ({
+                                                    value: i.toString(),
+                                                    label: `Monitor ${i + 1}`
+                                                }))
+                                            ]}
+                                        />
                                     </div>
                                 )}
                             </div>

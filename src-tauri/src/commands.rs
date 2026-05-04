@@ -759,6 +759,9 @@ pub struct ScrcpyConfig {
     vd_dpi: Option<u32>,
     rotation: Option<String>,
     res: Option<String>,
+    shortcut_mod: Option<String>,
+    #[allow(dead_code)]
+    hover_monitor: Option<String>,
     hid_keyboard: Option<bool>,
     hid_mouse: Option<bool>,
     render_driver: Option<String>,
@@ -779,6 +782,12 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
     let otg_pure = config.otg_pure.unwrap_or(false);
     let hid_keyboard = config.hid_keyboard.unwrap_or(false);
     let hid_mouse = config.hid_mouse.unwrap_or(false);
+
+    if let Some(shortcut_mod) = &config.shortcut_mod {
+        if !shortcut_mod.is_empty() {
+            args.push(format!("--shortcut-mod={}", shortcut_mod));
+        }
+    }
 
     if config.session_mode == "mirror" && (hid_keyboard || hid_mouse) && otg_pure {
         if config.device.contains('.') || config.device.contains(':') {
