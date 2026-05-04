@@ -1145,6 +1145,8 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
+            hover_monitor: None,
+            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1183,6 +1185,8 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
+            hover_monitor: None,
+            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1222,6 +1226,8 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
+            hover_monitor: None,
+            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1429,13 +1435,13 @@ pub async fn get_videos_dir(app_handle: tauri::AppHandle) -> Result<String, Stri
 
 #[tauri::command]
 pub async fn save_report(app_handle: tauri::AppHandle, content: String, name: String) -> Result<String, String> {
-    use std::fs;
+    use tokio::fs;
 
     let downloads = app_handle.path().download_dir()
         .map_err(|e| e.to_string())?;
 
     let path = downloads.join(&name);
-    fs::write(&path, content).map_err(|e| e.to_string())?;
+    fs::write(&path, content).await.map_err(|e| e.to_string())?;
 
     Ok(path.to_string_lossy().to_string())
 }
