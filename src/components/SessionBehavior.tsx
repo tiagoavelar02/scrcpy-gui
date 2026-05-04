@@ -1,6 +1,6 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import { ScrcpyConfig } from '../hooks/useScrcpy';
-import { Coffee, MonitorOff, Volume2, Layers, Maximize, Square, Circle, Folder, Settings2 } from 'lucide-react';
+import { Coffee, MonitorOff, Volume2, Layers, Maximize, Square, Circle, Folder, Settings2, LucideIcon } from 'lucide-react';
 
 interface SessionBehaviorProps {
     config: ScrcpyConfig;
@@ -8,11 +8,11 @@ interface SessionBehaviorProps {
 }
 
 export default function SessionBehavior({ config, setConfig }: SessionBehaviorProps) {
-    const handleChange = (field: keyof ScrcpyConfig, value: any) => {
+    const handleChange = <K extends keyof ScrcpyConfig>(field: K, value: ScrcpyConfig[K]) => {
         const newConfig = { ...config, [field]: value };
         setConfig(newConfig);
         if (field === 'recordPath') {
-            localStorage.setItem('scrcpy_record_path', value);
+            localStorage.setItem('scrcpy_record_path', value as string);
         }
     };
 
@@ -31,7 +31,7 @@ export default function SessionBehavior({ config, setConfig }: SessionBehaviorPr
         }
     };
 
-    const Toggle = ({ checked, onChange, icon: Icon, label, danger = false }: { checked: boolean, onChange: (v: boolean) => void, icon: any, label: string, danger?: boolean }) => (
+    const Toggle = ({ checked, onChange, icon: Icon, label, danger = false }: { checked: boolean, onChange: (v: boolean) => void, icon: LucideIcon, label: string, danger?: boolean }) => (
         <div
             onClick={() => onChange(!checked)}
             className="flex items-center justify-between p-2.5 rounded-[18px] cursor-pointer hover:bg-main/5 transition-all group"
