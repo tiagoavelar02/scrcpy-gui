@@ -13,7 +13,8 @@ pub struct ScrcpyState {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Fix for white screen on Linux (Wayland/NVIDIA)
+    // ... rest of Linux fix logic ...
+
     #[cfg(target_os = "linux")]
     {
         if std::env::var("WEBKIT_DISABLE_COMPOSITING_MODE").is_err() {
@@ -89,6 +90,7 @@ pub fn run() {
             commands::get_videos_dir,
             commands::save_report,
             commands::run_terminal_command,
+            commands::focus_scrcpy_window,
             close_splashscreen,
             get_app_version
         ])

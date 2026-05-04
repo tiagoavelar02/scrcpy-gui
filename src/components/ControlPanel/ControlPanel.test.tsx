@@ -37,7 +37,6 @@ function renderControlPanel(config: ScrcpyConfig, support: RenderDriverSupport, 
             onStart={vi.fn()}
             onStop={vi.fn()}
             isRunning={false}
-            onListOptions={vi.fn()}
             detectedCameras={[]}
             renderDriverSupport={support}
         />

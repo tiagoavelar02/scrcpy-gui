@@ -39,6 +39,8 @@ export interface ScrcpyConfig {
     rotation?: string;
     res?: string;
     aspectRatioLock?: boolean;
+    shortcutMod?: string;
+    hoverMonitor?: string;
     hidKeyboard?: boolean;
     hidMouse?: boolean;
     renderDriver?: string;
@@ -47,6 +49,32 @@ export interface ScrcpyConfig {
 export function useScrcpy() {
     const [devices, setDevices] = useState<string[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
+    const [pushProgress, setPushProgress] = useState<{ progress: number, speed: string, eta?: string }>({ progress: 0, speed: '', eta: '' });
+
+    useEffect(() => {
+        // Use global listener to ensure events are caught regardless of window scoping
+        const unlisten = listen<{ progress: number, speed: string, eta?: string }>('adb-push-progress', (event) => {
+            const { progress, speed, eta } = event.payload;
+            
+            // Internal debug log
+            console.log('[ADB] Progress Update:', progress, speed, eta);
+            
+            setPushProgress({ 
+                progress: Math.min(progress, 100), 
+                speed: speed || '',
+                eta: eta || ''
+            });
+            
+            if (progress >= 100) {
+                setTimeout(() => setPushProgress({ progress: 0, speed: '', eta: '' }), 2000);
+            }
+        });
+
+        return () => { 
+            unlisten.then(f => f()); 
+        };
+    }, []);
+
     const [activeDevice, setActiveDevice] = useState<string>("");
     const [status, setStatus] = useState<string>("");
     const [downloadProgress, setDownloadProgress] = useState<number>(0);
@@ -81,6 +109,8 @@ export function useScrcpy() {
         vdHeight: 1080,
         vdDpi: 420,
         aspectRatioLock: true,
+        shortcutMod: "lalt,ralt",
+        hoverMonitor: "all",
         hidKeyboard: false,
         hidMouse: false
     });
@@ -458,11 +488,19 @@ export function useScrcpy() {
 
     const pushFile = async (device: string, filePath: string, customPath?: string) => {
         try {
+            setPushProgress({ progress: 1, speed: 'Starting...' });
             setLogs(prev => [...prev.slice(-100), `[SYSTEM] Pushing file to ${device}: ${filePath}...`]);
             const res: any = await invoke('push_file', { device, filePath, customPath: customPath || config.scrcpyPath });
             setLogs(prev => [...prev.slice(-100), `[ADB] ${res.message}`]);
+            if (!res.success) {
+                setPushProgress({ progress: 0, speed: '' });
+            } else {
+                setPushProgress({ progress: 100, speed: 'Complete' });
+                setTimeout(() => setPushProgress({ progress: 0, speed: '' }), 2000);
+            }
             return res;
         } catch (e: any) {
+            setPushProgress({ progress: 0, speed: '' });
             setLogs(prev => [...prev.slice(-100), `Error: ${e}`]);
             return { success: false, message: e };
         }
@@ -470,11 +508,19 @@ export function useScrcpy() {
 
     const installApk = async (device: string, filePath: string, customPath?: string) => {
         try {
+            setPushProgress({ progress: 1, speed: 'Preparing...' });
             setLogs(prev => [...prev.slice(-100), `[SYSTEM] Installing APK on ${device}: ${filePath}...`]);
             const res: any = await invoke('install_apk', { device, filePath, customPath: customPath || config.scrcpyPath });
             setLogs(prev => [...prev.slice(-100), `[ADB] ${res.message}`]);
+            if (res.success) {
+                setPushProgress({ progress: 100, speed: 'Done' });
+                setTimeout(() => setPushProgress({ progress: 0, speed: '' }), 2000);
+            } else {
+                setPushProgress({ progress: 0, speed: '' });
+            }
             return res;
         } catch (e: any) {
+            setPushProgress({ progress: 0, speed: '' });
             setLogs(prev => [...prev.slice(-100), `Error: ${e}`]);
             return { success: false, message: e };
         }
@@ -548,6 +594,7 @@ export function useScrcpy() {
         sessionRunning: runningDevices.includes(activeDevice || ''),
         isOnboardingOpen,
         setIsOnboardingOpen,
+        pushProgress,
         completeOnboarding: () => {
             localStorage.setItem('scrcpy_onboarding_done', 'true');
             setIsOnboardingOpen(false);

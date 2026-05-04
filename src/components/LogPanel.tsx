@@ -23,7 +23,7 @@ const LogPanel = memo(({ logs, onClear, onAddLog, onRunCommand }: LogPanelProps)
             const timer = setTimeout(() => setIsLive(false), 2000);
             return () => clearTimeout(timer);
         }
-    }, [logs.length]); // Only trigger scroll on length change
+    }, [logs.length]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && command.trim()) {
@@ -33,14 +33,17 @@ const LogPanel = memo(({ logs, onClear, onAddLog, onRunCommand }: LogPanelProps)
     };
 
     return (
-        <div className="glass rounded-2xl h-[220px] flex-none overflow-hidden font-mono border border-zinc-800 bg-black/60 backdrop-blur-xl flex flex-col shadow-2xl relative">
-            {/* Top Bar */}
-            <div className="px-4 py-2.5 border-b border-zinc-800/80 bg-zinc-900/40 flex justify-between items-center shrink-0">
+        <div className="glass-card rounded-[32px] h-[280px] flex-none overflow-hidden flex flex-col shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+            {/* Console Header */}
+            <div className="px-6 py-4 border-b border-main/5 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-3">
-                    <Terminal size={12} className="text-primary" />
-                    <div className="flex items-center gap-2">
-                        <span className="font-black text-zinc-400 tracking-[0.2em] uppercase text-[9px]">System Console</span>
-                        <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isLive ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]' : 'bg-zinc-700'}`} />
+                    <Terminal size={18} className="text-primary" />
+                    <div className="flex flex-col">
+                        <span className="text-sm font-bold text-main">System Console</span>
+                        <div className="flex items-center gap-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${isLive ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]' : 'bg-main/10'}`} />
+                            <span className="text-[10px] font-bold text-secondary uppercase tracking-widest">{isLive ? 'Active' : 'Idle'}</span>
+                        </div>
                     </div>
                 </div>
                 <div className="flex gap-2 shrink-0">
@@ -51,79 +54,69 @@ const LogPanel = memo(({ logs, onClear, onAddLog, onRunCommand }: LogPanelProps)
                                 const key = localStorage.key(i);
                                 if (key) storageData[key] = localStorage.getItem(key) || "";
                             }
-
                             const data = {
                                 timestamp: new Date().toISOString(),
                                 localStorage: storageData,
                                 logs: logs
                             };
-
                             try {
                                 const fileName = `scrcpy-gui-logs-${Date.now()}.json`;
                                 await invoke('save_report', {
                                     content: JSON.stringify(data, null, 2),
                                     name: fileName
                                 });
-                                if (onAddLog) {
-                                    onAddLog(`[SYSTEM] Diagnostic report saved to Downloads: ${fileName}`);
-                                } else {
-                                    alert(`Report saved to Downloads: ${fileName}`);
-                                }
+                                onAddLog?.(`[SYSTEM] Diagnostic report saved: ${fileName}`);
                             } catch (e) {
                                 console.error("Export failed:", e);
                             }
                         }}
-                        className="flex items-center gap-1.5 text-[9px] font-black uppercase text-zinc-500 hover:text-primary transition-all px-2 py-1 rounded-md hover:bg-white/5 active:scale-95"
-                        title="Export diagnostic report to Downloads"
+                        className="p-2.5 hover:bg-main/5 text-secondary hover:text-primary rounded-xl transition-all active:scale-95"
+                        title="Export Diagnostic Report"
                     >
-                        <Download size={10} />
-                        Report
+                        <Download size={18} />
                     </button>
                     <button
                         onClick={onClear}
-                        className="flex items-center gap-1.5 text-[9px] font-black uppercase text-zinc-500 hover:text-red-400 transition-all px-2 py-1 rounded-md hover:bg-white/5 active:scale-95"
+                        className="p-2.5 hover:bg-red-500/5 text-secondary hover:text-red-500 rounded-xl transition-all active:scale-95"
+                        title="Clear Console"
                     >
-                        <Trash2 size={10} />
-                        Clear
+                        <Trash2 size={18} />
                     </button>
                 </div>
             </div>
 
-            {/* Terminal Body */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto p-4 pt-2 custom-scrollbar bg-[radial-gradient(circle_at_top_left,_rgba(var(--primary-rgb),0.03),_transparent)]">
+            {/* Console Body */}
+            <div ref={containerRef} className="flex-1 overflow-y-auto p-6 font-mono custom-scrollbar bg-main/[0.02]">
                 {logs.length === 0 ? (
                     <div className="h-full flex items-center justify-center">
-                        <span className="text-[10px] text-zinc-700 font-bold uppercase tracking-widest animate-pulse">Waiting for sequence...</span>
+                        <span className="text-xs text-secondary/40 font-medium italic">Waiting for connection sequence...</span>
                     </div>
                 ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                         {logs.map((log, i) => (
-                            <div key={i} className="group flex gap-3 text-[11px] leading-relaxed py-0.5 border-l border-zinc-900 hover:border-primary/30 transition-colors pl-3">
-                                <span className="text-zinc-600 font-bold shrink-0 tabular-nums opacity-40 group-hover:opacity-100 transition-opacity">
+                            <div key={i} className="group flex gap-4 text-[11px] leading-relaxed py-1 px-3 rounded-lg hover:bg-main/[0.03] transition-colors border-l-2 border-transparent hover:border-primary/30">
+                                <span className="text-secondary/30 font-bold shrink-0 tabular-nums">
                                     {new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                 </span>
-                                <span className="text-zinc-300 break-all selection:bg-primary/30 selection:text-on-primary">{log}</span>
+                                <span className="text-main/80 break-all selection:bg-primary/20 selection:text-primary">{log}</span>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
 
-            {/* Terminal Input */}
-            <div className="px-4 py-2 border-t border-zinc-800/80 bg-black/40 flex items-center gap-2 shrink-0 group">
-                <span className="text-primary font-bold text-[11px] select-none">$</span>
+            {/* Console Input */}
+            <div className="px-6 py-3 border-t border-main/5 bg-main/[0.03] flex items-center gap-3 shrink-0">
+                <span className="text-primary font-bold text-sm select-none shrink-0">$</span>
                 <input
                     type="text"
                     value={command}
                     onChange={(e) => setCommand(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Enter command (e.g. adb shell, scrcpy --help)..."
-                    className="flex-1 bg-transparent border-none outline-none text-[11px] text-zinc-300 placeholder:text-zinc-700 font-mono transition-colors focus:placeholder:text-zinc-800"
+                    placeholder="Enter console command..."
+                    className="flex-1 bg-transparent border-none outline-none text-xs text-main placeholder:text-secondary/40 font-mono transition-colors"
                 />
             </div>
-
-            {/* Bottom Glow */}
-            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent pointer-events-none" />
         </div>
     );
 });
