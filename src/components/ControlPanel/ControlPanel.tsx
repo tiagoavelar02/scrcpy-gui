@@ -152,7 +152,7 @@ export default function ControlPanel({
         if (isRunning && config.otgPure && (config.hidKeyboard || config.hidMouse)) {
             spawnHoverAreas();
         }
-    }, [isRunning, config.otgPure, config.hidKeyboard, config.hidMouse]);
+    }, [isRunning, config.otgPure, config.hidKeyboard, config.hidMouse, config.hoverMonitor]);
 
     const spawnHoverAreas = async () => {
         try {
