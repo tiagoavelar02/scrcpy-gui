@@ -32,6 +32,21 @@
         "transparent": true,
         "center": true,
         "alwaysOnTop": true
+      },
+      {
+        "label": "hover-trigger",
+        "url": "index.html",
+        "title": "Hover to Control",
+        "width": 100,
+        "height": 100,
+        "visible": false,
+        "resizable": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "transparent": true,
+        "center": false,
+        "shadow": false,
+        "focusable": false
       }
     ],
     "security": {
