@@ -1116,6 +1116,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_split_args() {
+        assert_eq!(
+            split_args("cmd arg1 arg2"),
+            Ok(vec!["cmd".to_string(), "arg1".to_string(), "arg2".to_string()])
+        );
+        assert_eq!(
+            split_args("cmd \"arg 1\" arg2"),
+            Ok(vec!["cmd".to_string(), "arg 1".to_string(), "arg2".to_string()])
+        );
+        assert_eq!(
+            split_args(""),
+            Ok(vec![])
+        );
+        assert_eq!(
+            split_args("cmd    arg1"),
+            Ok(vec!["cmd".to_string(), "arg1".to_string()])
+        );
+        assert_eq!(
+            split_args("cmd \"arg1"),
+            Err("Unclosed quotes".to_string())
+        );
+    }
+
+    #[test]
     fn test_build_scrcpy_args_mirror_defaults() {
         let config = ScrcpyConfig {
             device: "device1".to_string(),
@@ -1145,6 +1169,8 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
+            hover_monitor: None,
+            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1183,6 +1209,8 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
+            hover_monitor: None,
+            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1222,6 +1250,8 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
+            hover_monitor: None,
+            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
