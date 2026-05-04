@@ -50,31 +50,6 @@ export function useScrcpy() {
     const [devices, setDevices] = useState<string[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [pushProgress, setPushProgress] = useState<{ progress: number, speed: string, eta?: string }>({ progress: 0, speed: '', eta: '' });
-
-    useEffect(() => {
-        // Use global listener to ensure events are caught regardless of window scoping
-        const unlisten = listen<{ progress: number, speed: string, eta?: string }>('adb-push-progress', (event) => {
-            const { progress, speed, eta } = event.payload;
-            
-            // Internal debug log
-            console.log('[ADB] Progress Update:', progress, speed, eta);
-            
-            setPushProgress({ 
-                progress: Math.min(progress, 100), 
-                speed: speed || '',
-                eta: eta || ''
-            });
-            
-            if (progress >= 100) {
-                setTimeout(() => setPushProgress({ progress: 0, speed: '', eta: '' }), 2000);
-            }
-        });
-
-        return () => { 
-            unlisten.then(f => f()); 
-        };
-    }, []);
-
     const [activeDevice, setActiveDevice] = useState<string>("");
     const [status, setStatus] = useState<string>("");
     const [downloadProgress, setDownloadProgress] = useState<number>(0);
@@ -92,8 +67,8 @@ export function useScrcpy() {
     });
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-    // Removed mdnsDevices state
     const [theme, setTheme] = useState("ultraviolet");
+    const [historyDevices, setHistoryDevices] = useState<string[]>([]);
     const [config, setConfig] = useState<ScrcpyConfig>({
         device: "",
         sessionMode: "mirror",
@@ -117,15 +92,33 @@ export function useScrcpy() {
     const prevDevicesRef = useRef<string[]>([]);
 
     useEffect(() => {
+        // Use global listener to ensure events are caught regardless of window scoping
+        const unlisten = listen<{ progress: number, speed: string, eta?: string }>('adb-push-progress', (event) => {
+            const { progress, speed, eta } = event.payload;
+            console.log('[ADB] Progress Update:', progress, speed, eta);
+            setPushProgress({ 
+                progress: Math.min(progress, 100), 
+                speed: speed || '',
+                eta: eta || ''
+            });
+            if (progress >= 100) {
+                setTimeout(() => setPushProgress({ progress: 0, speed: '', eta: '' }), 2000);
+            }
+        });
+        return () => { unlisten.then(f => f()); };
+    }, []);
 
+    useEffect(() => {
         const savedAuto = localStorage.getItem('scrcpy_auto_connect');
-        if (savedAuto !== null) {
-            setIsAutoConnect(savedAuto === 'true');
-        }
+        if (savedAuto !== null) setIsAutoConnect(savedAuto === 'true');
 
         const savedTheme = localStorage.getItem('scrcpy_theme');
-        if (savedTheme) {
-            setTheme(savedTheme);
+        if (savedTheme) setTheme(savedTheme);
+
+        const savedHistory = localStorage.getItem('scrcpy_history');
+        if (savedHistory) {
+            try { setHistoryDevices(JSON.parse(savedHistory)); } 
+            catch (e) { console.error("Failed to parse history", e); }
         }
 
         const savedConfig = localStorage.getItem('scrcpy_config');
@@ -133,40 +126,26 @@ export function useScrcpy() {
             try {
                 const parsed = JSON.parse(savedConfig);
                 setConfig(prev => ({ ...prev, ...parsed }));
-                // Initial check with saved path if it exists
-                if (parsed.scrcpyPath) {
-                    checkScrcpy(parsed.scrcpyPath);
-                }
-            } catch (e) {
-                console.error("Failed to parse saved config", e);
-            }
+                if (parsed.scrcpyPath) checkScrcpy(parsed.scrcpyPath);
+            } catch (e) { console.error("Failed to parse saved config", e); }
         }
 
         const initPaths = async () => {
             try {
                 const defaultDir: string = await invoke('get_videos_dir');
                 setDefaultRecordPath(defaultDir);
-
-                // If no saved path in config, set it now
                 setConfig(prev => {
-                    if (!prev.recordPath) {
-                        return { ...prev, recordPath: defaultDir };
-                    }
+                    if (!prev.recordPath) return { ...prev, recordPath: defaultDir };
                     return prev;
                 });
-
                 return defaultDir;
-            } catch (e) {
-                console.error("Failed to fetch videos dir", e);
-                return "";
-            }
+            } catch (e) { console.error("Failed to fetch videos dir", e); return ""; }
         };
 
         const initStart = async () => {
             await initPaths();
             setIsInitialized(true);
         };
-
         initStart();
     }, []);
 
@@ -187,7 +166,26 @@ export function useScrcpy() {
         setDetectedCameras([]);
     }, [activeDevice]);
 
+    const hasAutoConnectedRef = useRef(false);
 
+    // Automatic connection logic
+    useEffect(() => {
+        if (!isInitialized || !isAutoConnect || !scrcpyStatus.found || devices.length > 0 || isRefreshing || hasAutoConnectedRef.current) return;
+
+        const autoConnectAll = async () => {
+            if (historyDevices.length > 0) {
+                hasAutoConnectedRef.current = true;
+                setLogs(prev => [...prev.slice(-100), `[SYSTEM] Auto-connect active. Attempting to reach ${historyDevices.length} known devices...`]);
+                for (const ip of historyDevices) {
+                    if (devices.includes(ip)) continue;
+                    await connectDevice(ip);
+                }
+            }
+        };
+
+        const timer = setTimeout(autoConnectAll, 2000); 
+        return () => clearTimeout(timer);
+    }, [isInitialized, isAutoConnect, scrcpyStatus.found, historyDevices, devices.length, isRefreshing]);
 
     const toggleAutoConnect = (val: boolean) => {
         setIsAutoConnect(val);
@@ -204,11 +202,8 @@ export function useScrcpy() {
             const data = event.payload;
             if (data.device && typeof data.running === 'boolean') {
                 setRunningDevices(prev => {
-                    if (data.running) {
-                        return [...new Set([...prev, data.device])];
-                    } else {
-                        return prev.filter(d => d !== data.device);
-                    }
+                    if (data.running) return [...new Set([...prev, data.device])];
+                    return prev.filter(d => d !== data.device);
                 });
             } else if (data.type === 'downloading') {
                 setIsDownloading(true);
@@ -219,7 +214,7 @@ export function useScrcpy() {
                 setIsDownloading(false);
                 setStatus("Download Complete");
                 refreshDevices(data.message);
-                checkScrcpy(); // Re-check binary status
+                checkScrcpy();
             }
         });
 
@@ -229,24 +224,10 @@ export function useScrcpy() {
         };
     }, []);
 
-    const [historyDevices, setHistoryDevices] = useState<string[]>([]);
-
-    // Load history on mount
-    useEffect(() => {
-        const savedHistory = localStorage.getItem('scrcpy_history');
-        if (savedHistory) {
-            try {
-                setHistoryDevices(JSON.parse(savedHistory));
-            } catch (e) {
-                console.error("Failed to parse history", e);
-            }
-        }
-    }, []);
-
     const addToHistory = (ip: string) => {
-        if (!ip.includes(':')) return; // Only add valid IP:Port combos
+        if (!ip.includes(':')) return;
         setHistoryDevices(prev => {
-            const next = [ip, ...prev.filter(d => d !== ip)].slice(0, 10); // Keep last 10 unique
+            const next = [ip, ...prev.filter(d => d !== ip)].slice(0, 10);
             localStorage.setItem('scrcpy_history', JSON.stringify(next));
             return next;
         });
@@ -262,22 +243,14 @@ export function useScrcpy() {
         setIsRefreshing(true);
         try {
             const res: any = await invoke('get_devices', { customPath: customPath || config.scrcpyPath });
-
             if (!res.error) {
                 const newDevices = res.devices as string[];
                 const prevDevices = prevDevicesRef.current;
-
-                // Identify connections/disconnections
                 const added = newDevices.filter(d => !prevDevices.includes(d));
                 const removed = prevDevices.filter(d => !newDevices.includes(d));
 
-                added.forEach(device => {
-                    setLogs(prev => [...prev.slice(-100), `[SYSTEM] New device discovered: ${device}`]);
-                });
-
-                removed.forEach(device => {
-                    setLogs(prev => [...prev.slice(-100), `[SYSTEM] Device disconnected: ${device}`]);
-                });
+                added.forEach(device => setLogs(prev => [...prev.slice(-100), `[SYSTEM] New device discovered: ${device}`]));
+                removed.forEach(device => setLogs(prev => [...prev.slice(-100), `[SYSTEM] Device disconnected: ${device}`]));
 
                 setDevices(newDevices);
                 prevDevicesRef.current = newDevices;
@@ -285,12 +258,9 @@ export function useScrcpy() {
                 if (!silent && added.length === 0 && removed.length === 0) {
                     setLogs(prev => [...prev.slice(-100), `[SYSTEM] Discovery active: ${newDevices.length} device(s) found.`]);
                 }
-
-                if (newDevices.length > 0 && !activeDevice) {
-                    setActiveDevice(newDevices[0]);
-                }
+                if (newDevices.length > 0 && !activeDevice) setActiveDevice(newDevices[0]);
             } else {
-                setLogs(prev => [...prev.slice(-100), `[SYSTEM] Discovery error: ${res.error}`]);
+                setLogs(prev => [...prev.slice(-100), `[SYSTEM] Discovery error: ${res.message || res.error}`]);
             }
         } catch (e) {
             console.error(e);
@@ -310,11 +280,7 @@ export function useScrcpy() {
     };
 
     const stopScrcpy = async (device: string) => {
-        try {
-            await invoke('stop_scrcpy', { device });
-        } catch (e) {
-            console.error(e);
-        }
+        try { await invoke('stop_scrcpy', { device }); } catch (e) { console.error(e); }
     };
 
     const downloadScrcpy = async () => {
@@ -329,12 +295,9 @@ export function useScrcpy() {
 
     const checkScrcpy = async (customPath?: string) => {
         try {
-            // If customPath is explicitly provided (even as undefined/null for reset), use it.
-            // Otherwise, use the saved path from config.
             const pathToCheck = customPath !== undefined ? customPath : config.scrcpyPath;
             const res: any = await invoke('check_scrcpy', { customPath: pathToCheck });
             setScrcpyStatus(res);
-
             if (res.found) {
                 try {
                     const renderRes: any = await invoke('get_render_drivers', { customPath: pathToCheck });
@@ -344,25 +307,12 @@ export function useScrcpy() {
                         supportedDrivers: Array.isArray(renderRes?.supportedDrivers) ? renderRes.supportedDrivers : []
                     });
                 } catch {
-                    setRenderDriverSupport({
-                        hostOs: 'unknown',
-                        supportsRenderDriver: false,
-                        supportedDrivers: []
-                    });
+                    setRenderDriverSupport({ hostOs: 'unknown', supportsRenderDriver: false, supportedDrivers: [] });
                 }
             } else {
-                setRenderDriverSupport({
-                    hostOs: 'unknown',
-                    supportsRenderDriver: false,
-                    supportedDrivers: []
-                });
+                setRenderDriverSupport({ hostOs: 'unknown', supportsRenderDriver: false, supportedDrivers: [] });
             }
-
-            // Auto-trigger onboarding if not found
-            if (!res.found) {
-                setIsOnboardingOpen(true);
-            }
-
+            if (!res.found) setIsOnboardingOpen(true);
             return res.found;
         } catch (e: any) {
             setScrcpyStatus({ found: false, message: `Error: ${e}` });
@@ -395,33 +345,23 @@ export function useScrcpy() {
     const connectDevice = async (ip: string, customPath?: string) => {
         setIsRefreshing(true);
         try {
-            // Attempt 1: Connect
             let res: any = await invoke('adb_connect', { ip, customPath: customPath || config.scrcpyPath });
-
-            // Retry Logic: If failed, try to disconnect first then reconnect
             if (!res.success && typeof res.message === 'string' && (res.message.includes('failed to connect') || res.message.includes('cannot connect'))) {
                 setLogs(prev => [...prev.slice(-100), `[SYSTEM] Connection failed, retrying with cleanup...`]);
-                // Force disconnect to clear ghost state
                 await invoke('run_terminal_command', { cmd: `adb disconnect ${ip}`, customPath: customPath || config.scrcpyPath });
-                // Small delay
                 await new Promise(r => setTimeout(r, 500));
-                // Attempt 2
                 res = await invoke('adb_connect', { ip, customPath: customPath || config.scrcpyPath });
             }
 
             if (res.success) {
                 setLogs(prev => [...prev.slice(-100), `[SYSTEM] CONNECTED TO ${ip} SUCCESSFULLY.`]);
                 addToHistory(ip);
-
-                // Allow ADB to settle and state to update
                 await new Promise(r => setTimeout(r, 1000));
-
-                setIsRefreshing(false); // Enable refreshDevices to run
+                setIsRefreshing(false);
                 await refreshDevices(customPath || config.scrcpyPath, true);
             } else {
                 setLogs(prev => {
                     const msgs = [`[SYSTEM] Connection failed: ${res.message}`];
-                    // Smart tip for stale ports
                     if (typeof res.message === 'string' && (res.message.includes('failed to connect') || res.message.includes('cannot connect'))) {
                         msgs.push(`[TIP] Port might be stale. Try "Kill ADB" to refresh discovery.`);
                     }
@@ -444,39 +384,21 @@ export function useScrcpy() {
             if (res.output) {
                 const lines = res.output.split('\n');
                 setLogs(prev => [...prev.slice(-100), ...lines]);
-
-                // Parse cameras if requested
                 if (arg === '--list-cameras') {
                     const cameras: { id: string, name: string }[] = [];
                     lines.forEach((line: string) => {
                         const trimmedLine = line.trim();
-                        // New format (scrcpy 3.x): "    --camera-id=0    (back, 4080x3060, fps=[15, 20, 24, 30])"
-                        // Old format: "    - [0] (3264x2448) back, macro"
                         const newMatch = trimmedLine.match(/--camera-id=(\w+)\s*\((.*?)\)/);
                         const oldMatch = trimmedLine.match(/^(?:-\s*)?\[(\w+)\]\s*\((.*?)\)\s*(.*)/);
-
                         if (newMatch) {
-                            const id = newMatch[1];
-                            const details = newMatch[2]; // e.g. "back, 4080x3060, fps=[...]"
-                            cameras.push({
-                                id,
-                                name: `${id}: ${details}`
-                            });
+                            cameras.push({ id: newMatch[1], name: `${newMatch[1]}: ${newMatch[2]}` });
                         } else if (oldMatch) {
-                            const id = oldMatch[1];
-                            const resolution = oldMatch[2];
                             const metadata = oldMatch[3].replace(/\r$/, '').trim();
-                            cameras.push({
-                                id,
-                                name: `${id}: ${metadata || 'Camera'} (${resolution})`
-                            });
+                            cameras.push({ id: oldMatch[1], name: `${oldMatch[1]}: ${metadata || 'Camera'} (${oldMatch[2]})` });
                         }
                     });
-                    if (cameras.length > 0) {
-                        setDetectedCameras(cameras);
-                    } else {
-                        setLogs(prev => [...prev, "[SYSTEM] No cameras parsed from output. Please check the console above."]);
-                    }
+                    if (cameras.length > 0) setDetectedCameras(cameras);
+                    else setLogs(prev => [...prev, "[SYSTEM] No cameras parsed from output. Please check the console above."]);
                 }
             }
             return res;
@@ -492,9 +414,8 @@ export function useScrcpy() {
             setLogs(prev => [...prev.slice(-100), `[SYSTEM] Pushing file to ${device}: ${filePath}...`]);
             const res: any = await invoke('push_file', { device, filePath, customPath: customPath || config.scrcpyPath });
             setLogs(prev => [...prev.slice(-100), `[ADB] ${res.message}`]);
-            if (!res.success) {
-                setPushProgress({ progress: 0, speed: '' });
-            } else {
+            if (!res.success) setPushProgress({ progress: 0, speed: '' });
+            else {
                 setPushProgress({ progress: 100, speed: 'Complete' });
                 setTimeout(() => setPushProgress({ progress: 0, speed: '' }), 2000);
             }
@@ -515,9 +436,7 @@ export function useScrcpy() {
             if (res.success) {
                 setPushProgress({ progress: 100, speed: 'Done' });
                 setTimeout(() => setPushProgress({ progress: 0, speed: '' }), 2000);
-            } else {
-                setPushProgress({ progress: 0, speed: '' });
-            }
+            } else setPushProgress({ progress: 0, speed: '' });
             return res;
         } catch (e: any) {
             setPushProgress({ progress: 0, speed: '' });
@@ -528,17 +447,10 @@ export function useScrcpy() {
 
     const runTerminalCommand = async (command: string, customPath?: string) => {
         try {
-            // Check if user specifically typed scrcpy or adb to format log nicely
             const lower = command.trim().toLowerCase();
             const prefix = (lower.startsWith('scrcpy') || lower.startsWith('adb')) ? '' : 'adb ';
             setLogs(prev => [...prev.slice(-100), `> ${prefix}${command}`]);
-
-            const res: any = await invoke('run_terminal_command', {
-                device: activeDevice,
-                cmd: command,
-                customPath: customPath || config.scrcpyPath
-            });
-
+            const res: any = await invoke('run_terminal_command', { device: activeDevice, cmd: command, customPath: customPath || config.scrcpyPath });
             if (res.stdout) {
                 const lines = res.stdout.trim().split('\n');
                 setLogs(prev => [...prev.slice(-100), ...lines]);
