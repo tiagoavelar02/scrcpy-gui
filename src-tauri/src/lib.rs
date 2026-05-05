@@ -44,7 +44,7 @@ pub fn run() {
                         std::env::set_var("LD_PRELOAD", &new_preload);
 
                         let current_exe = std::env::current_exe().unwrap_or_else(|_| {
-                            std::path::PathBuf::from(std::env::args().next().unwrap())
+                            std::path::PathBuf::from(std::env::args().next().unwrap_or_default())
                         });
                         let mut cmd = std::process::Command::new(current_exe);
                         cmd.args(std::env::args().skip(1));

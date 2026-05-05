@@ -1152,6 +1152,8 @@ mod tests {
             always_on_top: None,
             fullscreen: None,
             borderless: None,
+            hover_monitor: None,
+            shortcut_mod: None,
             record: None,
             record_path: None,
             scrcpy_path: None,
@@ -1192,6 +1194,8 @@ mod tests {
             always_on_top: None,
             fullscreen: None,
             borderless: None,
+            hover_monitor: None,
+            shortcut_mod: None,
             record: None,
             record_path: None,
             scrcpy_path: None,
@@ -1233,6 +1237,8 @@ mod tests {
             always_on_top: None,
             fullscreen: None,
             borderless: None,
+            hover_monitor: None,
+            shortcut_mod: None,
             record: None,
             record_path: None,
             scrcpy_path: None,
@@ -1270,7 +1276,7 @@ pub async fn stop_scrcpy(state: State<'_, ScrcpyState>, device: String) -> Resul
     };
 
     if let Some(mut c) = child {
-        if let Some(pid) = c.id() {
+        if let Some(_pid) = c.id() {
              #[cfg(target_os = "windows")]
              {
                 let _ = StdCommand::new("taskkill")
