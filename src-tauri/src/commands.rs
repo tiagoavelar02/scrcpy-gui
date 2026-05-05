@@ -1276,7 +1276,7 @@ pub async fn stop_scrcpy(state: State<'_, ScrcpyState>, device: String) -> Resul
     };
 
     if let Some(mut c) = child {
-        if let Some(_pid) = c.id() {
+        if let Some(pid) = c.id() {
              #[cfg(target_os = "windows")]
              {
                 let _ = StdCommand::new("taskkill")
