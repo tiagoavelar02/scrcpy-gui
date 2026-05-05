@@ -8,11 +8,11 @@ interface SessionBehaviorProps {
 }
 
 export default function SessionBehavior({ config, setConfig }: SessionBehaviorProps) {
-    const handleChange = (field: keyof ScrcpyConfig, value: any) => {
+    const handleChange = <K extends keyof ScrcpyConfig>(field: K, value: ScrcpyConfig[K]) => {
         const newConfig = { ...config, [field]: value };
         setConfig(newConfig);
         if (field === 'recordPath') {
-            localStorage.setItem('scrcpy_record_path', value);
+            localStorage.setItem('scrcpy_record_path', value as string);
         }
     };
 
