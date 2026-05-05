@@ -1066,7 +1066,7 @@ pub async fn run_scrcpy(window: Window, state: State<'_, ScrcpyState>, config: S
     }
 
     // Store process
-    state.processes.lock().unwrap().insert(config.device.clone(), child);
+    state.processes.lock().map_err(|e| format!("Mutex poisoned: {}", e))?.insert(config.device.clone(), child);
     let _ = window.emit("scrcpy-status", json!({ "device": config.device, "running": true }));
 
     // Monitor for exit
@@ -1079,7 +1079,7 @@ pub async fn run_scrcpy(window: Window, state: State<'_, ScrcpyState>, config: S
             tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
             let state_mon = app_handle.state::<ScrcpyState>();
-            let mut processes = state_mon.processes.lock().unwrap();
+            let mut processes = state_mon.processes.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(child) = processes.get_mut(&device_mon) {
                 // Explicitly use tokio's try_wait to help inference
                 match child.try_wait() {
@@ -1265,7 +1265,7 @@ mod tests {
 #[tauri::command]
 pub async fn stop_scrcpy(state: State<'_, ScrcpyState>, device: String) -> Result<(), String> {
     let child = {
-        let mut processes = state.processes.lock().unwrap();
+        let mut processes = state.processes.lock().map_err(|e| format!("Mutex poisoned: {}", e))?;
         processes.remove(&device)
     };
 
