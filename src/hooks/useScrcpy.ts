@@ -262,9 +262,10 @@ export function useScrcpy() {
             } else {
                 setLogs(prev => [...prev.slice(-100), `[SYSTEM] Discovery error: ${res.message || res.error}`]);
             }
-        } catch (e) {
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
             console.error(e);
-            setLogs(prev => [...prev.slice(-100), `[SYSTEM] Error refreshing devices: ${e}`]);
+            setLogs(prev => [...prev.slice(-100), `[SYSTEM] Error refreshing devices: ${errorMessage}`]);
         } finally {
             setIsRefreshing(false);
         }
@@ -274,8 +275,9 @@ export function useScrcpy() {
         try {
             setLogs(prev => [...prev.slice(-100), `[SYSTEM] Initializing scrcpy session for ${config.device}...`]);
             await invoke('run_scrcpy', { config });
-        } catch (e: any) {
-            setLogs(prev => [...prev.slice(-100), `[ERROR] Failed to start scrcpy: ${e}`]);
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            setLogs(prev => [...prev.slice(-100), `[ERROR] Failed to start scrcpy: ${errorMessage}`]);
         }
     };
 
@@ -287,9 +289,10 @@ export function useScrcpy() {
         try {
             setIsDownloading(true);
             await invoke('download_scrcpy');
-        } catch (e: any) {
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
             setIsDownloading(false);
-            setLogs(prev => [...prev, `Download Error: ${e}`]);
+            setLogs(prev => [...prev, `Download Error: ${errorMessage}`]);
         }
     };
 
@@ -314,8 +317,9 @@ export function useScrcpy() {
             }
             if (!res.found) setIsOnboardingOpen(true);
             return res.found;
-        } catch (e: any) {
-            setScrcpyStatus({ found: false, message: `Error: ${e}` });
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            setScrcpyStatus({ found: false, message: `Error: ${errorMessage}` });
             return false;
         }
     };
@@ -336,9 +340,10 @@ export function useScrcpy() {
                 });
             }
             return res;
-        } catch (e: any) {
-            setLogs(prev => [...prev.slice(-100), `[ERROR] Pairing error: ${e}`]);
-            return { success: false, message: e };
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            setLogs(prev => [...prev.slice(-100), `[ERROR] Pairing error: ${errorMessage}`]);
+            return { success: false, message: errorMessage };
         }
     };
 
@@ -369,9 +374,10 @@ export function useScrcpy() {
                 });
             }
             return res;
-        } catch (e: any) {
-            setLogs(prev => [...prev.slice(-100), `[ERROR] Connection error: ${e}`]);
-            return { success: false, message: e };
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            setLogs(prev => [...prev.slice(-100), `[ERROR] Connection error: ${errorMessage}`]);
+            return { success: false, message: errorMessage };
         } finally {
             setIsRefreshing(false);
         }
@@ -402,9 +408,10 @@ export function useScrcpy() {
                 }
             }
             return res;
-        } catch (e: any) {
-            setLogs(prev => [...prev.slice(-100), `Error: ${e}`]);
-            return { success: false, message: e };
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            setLogs(prev => [...prev.slice(-100), `Error: ${errorMessage}`]);
+            return { success: false, message: errorMessage };
         }
     };
 
@@ -420,10 +427,11 @@ export function useScrcpy() {
                 setTimeout(() => setPushProgress({ progress: 0, speed: '' }), 2000);
             }
             return res;
-        } catch (e: any) {
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
             setPushProgress({ progress: 0, speed: '' });
-            setLogs(prev => [...prev.slice(-100), `Error: ${e}`]);
-            return { success: false, message: e };
+            setLogs(prev => [...prev.slice(-100), `Error: ${errorMessage}`]);
+            return { success: false, message: errorMessage };
         }
     };
 
@@ -438,10 +446,11 @@ export function useScrcpy() {
                 setTimeout(() => setPushProgress({ progress: 0, speed: '' }), 2000);
             } else setPushProgress({ progress: 0, speed: '' });
             return res;
-        } catch (e: any) {
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
             setPushProgress({ progress: 0, speed: '' });
-            setLogs(prev => [...prev.slice(-100), `Error: ${e}`]);
-            return { success: false, message: e };
+            setLogs(prev => [...prev.slice(-100), `Error: ${errorMessage}`]);
+            return { success: false, message: errorMessage };
         }
     };
 
@@ -460,9 +469,10 @@ export function useScrcpy() {
                 setLogs(prev => [...prev.slice(-100), ...lines]);
             }
             return res;
-        } catch (e: any) {
-            setLogs(prev => [...prev.slice(-100), `[ERROR] Command failed: ${e}`]);
-            return { success: false, message: e };
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
+            setLogs(prev => [...prev.slice(-100), `[ERROR] Command failed: ${errorMessage}`]);
+            return { success: false, message: errorMessage };
         }
     };
 
