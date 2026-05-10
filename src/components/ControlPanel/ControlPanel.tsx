@@ -11,6 +11,7 @@ interface ControlPanelProps {
     isRunning: boolean;
     detectedCameras?: { id: string, name: string }[];
     renderDriverSupport?: RenderDriverSupport;
+    scrcpyStatus?: { found: boolean, message: string, version?: string, cameraSupported?: boolean };
 }
 
 const BitrateControl = ({ value, onChange }: { value: number, onChange: (val: number) => void }) => {
@@ -71,7 +72,8 @@ export default function ControlPanel({
     onStop,
     isRunning,
     detectedCameras = [],
-    renderDriverSupport = { hostOs: 'unknown', supportsRenderDriver: false, supportedDrivers: [] }
+    renderDriverSupport = { hostOs: 'unknown', supportsRenderDriver: false, supportedDrivers: [] },
+    scrcpyStatus = { found: false, message: "Checking...", cameraSupported: false }
 }: ControlPanelProps) {
     const handleChange = (field: keyof ScrcpyConfig, value: any) => {
         setConfig({ ...config, [field]: value });
@@ -237,9 +239,10 @@ export default function ControlPanel({
             )}
             <CustomSelect
                 label="Frame Rate"
-                value={config.fps || 60}
+                value={config.fps || 0}
                 onChange={(val) => handleChange('fps', parseInt(val))}
                 options={[
+                    { value: 0, label: "Auto / Original" },
                     { value: 30, label: "30 FPS" },
                     { value: 60, label: "60 FPS" },
                     { value: 90, label: "90 FPS" },
@@ -390,6 +393,20 @@ export default function ControlPanel({
 
                     {config.sessionMode === 'camera' && (
                         <div className="space-y-6 animate-in fade-in duration-500">
+                            {!scrcpyStatus?.cameraSupported && (
+                                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-3">
+                                    <div className="p-2 bg-amber-500/20 rounded-xl text-amber-500 h-fit">
+                                        <Camera size={18} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h4 className="text-xs font-bold text-amber-500 uppercase tracking-widest">Camera Mode Warning</h4>
+                                        <p className="text-[11px] text-amber-500/80 leading-relaxed">
+                                            Camera support requires **scrcpy 3.0** or higher. 
+                                            Your current version (v{scrcpyStatus?.version || 'unknown'}) might not support this feature.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <CustomSelect
                                     label="Lens Position"

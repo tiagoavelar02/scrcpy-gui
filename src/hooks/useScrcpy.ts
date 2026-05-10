@@ -21,6 +21,8 @@ export interface ScrcpyConfig {
     stayAwake?: boolean;
     turnOff?: boolean;
     audioEnabled?: boolean;
+    audioPlayback?: boolean;
+    audioSource?: 'output' | 'mic';
     alwaysOnTop?: boolean;
     fullscreen?: boolean;
     borderless?: boolean;
@@ -54,7 +56,7 @@ export function useScrcpy() {
     const [status, setStatus] = useState<string>("");
     const [downloadProgress, setDownloadProgress] = useState<number>(0);
     const [isDownloading, setIsDownloading] = useState(false);
-    const [scrcpyStatus, setScrcpyStatus] = useState<{ found: boolean, message: string }>({ found: false, message: "Checking..." });
+    const [scrcpyStatus, setScrcpyStatus] = useState<{ found: boolean, message: string, version?: string, cameraSupported?: boolean }>({ found: false, message: "Checking..." });
     const [isAutoConnect, setIsAutoConnect] = useState<boolean>(true);
     const [isInitialized, setIsInitialized] = useState(false);
     const [runningDevices, setRunningDevices] = useState<string[]>([]);
@@ -77,6 +79,8 @@ export function useScrcpy() {
         stayAwake: false,
         turnOff: false,
         audioEnabled: true,
+        audioPlayback: true,
+        audioSource: 'output',
         alwaysOnTop: false,
         res: "0",
         recordPath: "",
@@ -125,7 +129,13 @@ export function useScrcpy() {
         if (savedConfig) {
             try {
                 const parsed = JSON.parse(savedConfig);
-                setConfig(prev => ({ ...prev, ...parsed }));
+                // Ensure audioPlayback and audioSource have defaults if missing in old config
+                const configWithDefaults = {
+                    audioPlayback: true,
+                    audioSource: 'output',
+                    ...parsed
+                };
+                setConfig(prev => ({ ...prev, ...configWithDefaults }));
                 if (parsed.scrcpyPath) checkScrcpy(parsed.scrcpyPath);
             } catch (e) { console.error("Failed to parse saved config", e); }
         }
@@ -314,7 +324,14 @@ export function useScrcpy() {
         try {
             const pathToCheck = customPath !== undefined ? customPath : config.scrcpyPath;
             const res: any = await invoke('check_scrcpy', { customPath: pathToCheck });
-            setScrcpyStatus(res);
+            
+            let cameraSupported = false;
+            if (res.version && res.version !== 'unknown') {
+                const major = parseInt(res.version.split('.')[0]);
+                cameraSupported = major >= 3;
+            }
+
+            setScrcpyStatus({ ...res, cameraSupported });
             if (res.found) {
                 try {
                     const renderRes: any = await invoke('get_render_drivers', { customPath: pathToCheck });
@@ -333,7 +350,7 @@ export function useScrcpy() {
             return res.found;
         } catch (e: unknown) {
             const errorMessage = getErrorMessage(e);
-            setScrcpyStatus({ found: false, message: `Error: ${errorMessage}` });
+            setScrcpyStatus({ found: false, message: `Error: ${errorMessage}`, cameraSupported: false });
             return false;
         }
     };

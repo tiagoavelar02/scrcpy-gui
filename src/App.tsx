@@ -3,8 +3,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 import Sidebar from "./components/Sidebar";
 import ControlPanel from "./components/ControlPanel";
-import LogPanel from "./components/LogPanel";
+import CameraControls from "./components/CameraControls";
 import Header from "./components/Header";
+import LogPanel from "./components/LogPanel";
 import SessionBehavior from "./components/SessionBehavior";
 import ShortcutsPanel from "./components/ShortcutsPanel";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -90,7 +91,8 @@ function MainApp() {
     isOnboardingOpen,
     setIsOnboardingOpen,
     completeOnboarding,
-    pushProgress
+    pushProgress,
+    listScrcpyOptions
   } = useScrcpy();
 
   const [alertState, setAlertState] = useState<{
@@ -110,6 +112,19 @@ function MainApp() {
   const showAlert = (title: string, message: string, kind: 'warning' | 'error' | 'info' | 'success' = 'info') => {
     setAlertState({ isOpen: true, title, message, kind });
   };
+
+  useEffect(() => {
+    if (activeDevice && config.sessionMode === 'camera') {
+      listScrcpyOptions(activeDevice, '--list-cameras');
+    }
+    // When switching back to mirror or desktop, ensure audio is enabled by default
+    // to avoid the "weird" behavior where users have to manually re-enable it.
+    if (config.sessionMode !== 'camera') {
+      if (config.audioSource === 'mic') {
+        setConfig(prev => ({ ...prev, audioSource: 'output', audioEnabled: true, audioPlayback: true }));
+      }
+    }
+  }, [activeDevice, config.sessionMode]);
 
   useEffect(() => {
     // Initial setup: fetch version and close splashscreen
@@ -197,6 +212,73 @@ function MainApp() {
       await installApk(activeDevice, path);
     } else {
       await pushFile(activeDevice, path);
+    }
+  };
+
+  const restartSession = async (newConfig: any) => {
+    if (sessionRunning && activeDevice) {
+      try {
+        await handleStop();
+        // A small delay to ensure the previous process has fully cleaned up
+        await new Promise(r => setTimeout(r, 600));
+        await runScrcpy(newConfig);
+      } catch (e) {
+        console.error("Failed to restart scrcpy", e);
+        setLogs(prev => [...prev.slice(-100), `[ERROR] Failed to restart session.`]);
+      }
+    }
+  };
+
+  const handleToggleMic = async () => {
+    const isPhoneMic = config.audioEnabled && config.audioSource === 'mic';
+    const newConfig = isPhoneMic 
+      ? { ...config, audioEnabled: false, audioSource: 'output' as const }
+      : { ...config, audioEnabled: true, audioSource: 'mic' as const };
+    
+    setConfig(newConfig);
+    if (sessionRunning) {
+      setLogs(prev => [...prev.slice(-100), `[SYSTEM] Switching to ${!isPhoneMic ? 'Phone' : 'System'} Mic. Restarting session...`]);
+      await restartSession(newConfig);
+    }
+  };
+
+  const handleToggleCamera = async () => {
+    const currentFacing = config.cameraFacing || 'back';
+    const nextFacing = currentFacing === 'back' ? 'front' : 'back';
+    const newConfig = { ...config, cameraFacing: nextFacing };
+    
+    setConfig(newConfig);
+    if (sessionRunning) {
+      setLogs(prev => [...prev.slice(-100), `[SYSTEM] Switching camera to ${nextFacing}. Restarting session...`]);
+      await restartSession(newConfig);
+    }
+  };
+
+  const handleSetRotation = async (rotation: string) => {
+    const newConfig = { ...config, rotation };
+    
+    setConfig(newConfig);
+    if (sessionRunning) {
+      setLogs(prev => [...prev.slice(-100), `[SYSTEM] Rotating camera to ${rotation}°. Restarting session...`]);
+      await restartSession(newConfig);
+    }
+  };
+
+  const handleSetQuality = async (res: string) => {
+    const newConfig = { ...config, res };
+    setConfig(newConfig);
+    if (sessionRunning) {
+      setLogs(prev => [...prev.slice(-100), `[SYSTEM] Switching resolution to ${res === '0' ? 'Original' : res}. Restarting session...`]);
+      await restartSession(newConfig);
+    }
+  };
+
+  const handleSetFPS = async (fps: number) => {
+    const newConfig = { ...config, fps };
+    setConfig(newConfig);
+    if (sessionRunning) {
+      setLogs(prev => [...prev.slice(-100), `[SYSTEM] Switching frame rate to ${fps === 0 ? 'Auto' : fps} FPS. Restarting session...`]);
+      await restartSession(newConfig);
     }
   };
 
@@ -317,6 +399,7 @@ function MainApp() {
                     isRunning={sessionRunning}
                     detectedCameras={detectedCameras}
                     renderDriverSupport={renderDriverSupport}
+                    scrcpyStatus={scrcpyStatus}
                   />
                   <div className="h-[280px]">
                     <ShortcutsPanel />
@@ -357,6 +440,18 @@ function MainApp() {
           message={alertState.message}
           kind={alertState.kind}
         />
+
+        {sessionRunning && config.sessionMode === 'camera' && (
+          <CameraControls 
+            config={config} 
+            onToggleMic={handleToggleMic} 
+            onToggleCamera={handleToggleCamera}
+            onSetRotation={handleSetRotation}
+            onSetQuality={handleSetQuality}
+            onSetFPS={handleSetFPS}
+            onEndSession={handleStop} 
+          />
+        )}
       </div>
     </ErrorBoundary>
   );

@@ -72,10 +72,27 @@ export default function SessionBehavior({ config, setConfig }: SessionBehaviorPr
                 />
                 <Toggle
                     checked={config.audioEnabled || false}
-                    onChange={(v) => handleChange('audioEnabled', v)}
+                    onChange={(v) => {
+                        if (v && config.audioPlayback === false) {
+                            // Auto-enable playback when turning audio back on if it was off
+                            setConfig({ ...config, audioEnabled: true, audioPlayback: true });
+                        } else {
+                            handleChange('audioEnabled', v);
+                        }
+                    }}
                     icon={Volume2}
                     label="Forward Audio"
                 />
+                {(config.audioEnabled || false) && (
+                    <div className="animate-in slide-in-from-top-1 duration-300">
+                        <Toggle
+                            checked={config.audioPlayback !== false}
+                            onChange={(v) => handleChange('audioPlayback', v)}
+                            icon={Volume2}
+                            label="Audio Playback"
+                        />
+                    </div>
+                )}
                 <Toggle
                     checked={config.alwaysOnTop || false}
                     onChange={(v) => handleChange('alwaysOnTop', v)}

@@ -98,7 +98,17 @@ pub async fn check_scrcpy(custom_path: Option<String>) -> serde_json::Value {
 
     match output {
         Ok(o) if o.status.success() => {
-             json!({ "found": true, "message": "Scrcpy Ready" })
+             let out_str = String::from_utf8_lossy(&o.stdout);
+             // Example output: scrcpy 3.1 <https://github.com/Genymobile/scrcpy>
+             let version = out_str.lines().next()
+                .and_then(|l| l.split_whitespace().nth(1))
+                .unwrap_or("unknown");
+             
+             json!({ 
+                 "found": true, 
+                 "message": format!("Scrcpy Ready (v{})", version),
+                 "version": version
+             })
         },
         Ok(_) => {
              json!({ "found": false, "message": "Failed to start scrcpy (Exit Code != 0)" })
@@ -742,6 +752,8 @@ pub struct ScrcpyConfig {
     stay_awake: Option<bool>,
     turn_off: Option<bool>,
     audio_enabled: Option<bool>,
+    audio_playback: Option<bool>,
+    audio_source: Option<String>,
     always_on_top: Option<bool>,
     fullscreen: Option<bool>,
     borderless: Option<bool>,
@@ -826,14 +838,38 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
         }
 
         if let Some(audio) = config.audio_enabled { if !audio { args.push("--no-audio".to_string()); } }
+        if let Some(playback) = config.audio_playback { if !playback { args.push("--no-audio-playback".to_string()); } }
+        
+        if let Some(source) = &config.audio_source {
+            if source == "mic" {
+                args.push("--audio-source=mic".to_string());
+            }
+        }
+
         if let Some(aot) = config.always_on_top { if aot { args.push("--always-on-top".to_string()); } }
         if let Some(fs) = config.fullscreen { if fs { args.push("--fullscreen".to_string()); } }
         if let Some(bl) = config.borderless { if bl { args.push("--window-borderless".to_string()); } }
 
-        if let Some(rot) = &config.rotation {
-            if rot != "0" {
-                args.push("--orientation".to_string());
-                args.push(rot.clone());
+        let rotation = config.rotation.as_deref().unwrap_or("0").trim();
+        if let Ok(parsed_rotation) = rotation.parse::<i32>() {
+            let mut normalized_rotation = parsed_rotation.rem_euclid(360);
+            if normalized_rotation % 90 == 0 {
+                if config.session_mode == "camera" {
+                    // Cameras are typically delivered sideways relative to expected preview orientation.
+                    // Keep baseline correction and rotate via orientation metadata (display + record).
+                    // Avoid capture-orientation in camera mode to prevent broken recordings.
+                    let baseline = if config.camera_facing.as_deref() == Some("front") { 270 } else { 90 };
+                    normalized_rotation = (normalized_rotation + baseline).rem_euclid(360);
+                    if normalized_rotation != 0 {
+                        args.push("--display-orientation".to_string());
+                        args.push(normalized_rotation.to_string());
+                        args.push("--record-orientation".to_string());
+                        args.push(normalized_rotation.to_string());
+                    }
+                } else if normalized_rotation != 0 {
+                    args.push("--capture-orientation".to_string());
+                    args.push(normalized_rotation.to_string());
+                }
             }
         }
 
@@ -861,12 +897,14 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
         }
 
         if let Some(fps) = config.fps {
-            if config.session_mode == "camera" {
-                args.push("--camera-fps".to_string());
-            } else {
-                args.push("--max-fps".to_string());
+            if fps > 0 {
+                if config.session_mode == "camera" {
+                    args.push("--camera-fps".to_string());
+                } else {
+                    args.push("--max-fps".to_string());
+                }
+                args.push(fps.to_string());
             }
-            args.push(fps.to_string());
         } else if config.session_mode == "camera" && config.camera_high_speed.unwrap_or(false) {
             args.push("--camera-fps".to_string());
             args.push("60".to_string());
@@ -889,10 +927,19 @@ fn build_scrcpy_args(config: &ScrcpyConfig, video_dir_fallback: Option<String>) 
                     path = video_dir_fallback.unwrap_or_else(|| ".".to_string());
                  }
 
-                 let filename = format!("scrcpy_{}_{}.mkv", config.device.replace(":", "-"), chrono::Local::now().format("%Y%m%d_%H%M%S"));
+                 let extension = if config.session_mode == "camera" { "mp4" } else { "mkv" };
+                 let filename = format!(
+                    "scrcpy_{}_{}.{}",
+                    config.device.replace(":", "-"),
+                    chrono::Local::now().format("%Y%m%d_%H%M%S"),
+                    extension
+                 );
                  let full_path = std::path::Path::new(&path).join(filename);
+                 if config.session_mode == "camera" {
+                    args.push("--record-format=mp4".to_string());
+                 }
                  args.push(format!("--record={}", full_path.to_string_lossy()));
-             }
+              }
         }
     }
 
@@ -1149,6 +1196,8 @@ mod tests {
             stay_awake: None,
             turn_off: None,
             audio_enabled: None,
+            audio_playback: None,
+            audio_source: None,
             always_on_top: None,
             fullscreen: None,
             borderless: None,
@@ -1171,8 +1220,6 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
-            hover_monitor: None,
-            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1191,6 +1238,8 @@ mod tests {
             stay_awake: None,
             turn_off: None,
             audio_enabled: None,
+            audio_playback: None,
+            audio_source: None,
             always_on_top: None,
             fullscreen: None,
             borderless: None,
@@ -1213,8 +1262,6 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
-            hover_monitor: None,
-            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1222,6 +1269,92 @@ mod tests {
         assert!(args.contains(&"--camera-facing=front".to_string()));
         assert!(args.contains(&"--camera-fps".to_string()));
         assert!(args.contains(&"30".to_string()));
+    }
+
+    #[test]
+    fn test_build_scrcpy_args_camera_rotation_sets_display_and_record_orientation() {
+        let config = ScrcpyConfig {
+            device: "device1".to_string(),
+            session_mode: "camera".to_string(),
+            bitrate: None,
+            fps: None,
+            stay_awake: None,
+            turn_off: None,
+            audio_enabled: None,
+            audio_playback: None,
+            audio_source: None,
+            always_on_top: None,
+            fullscreen: None,
+            borderless: None,
+            hover_monitor: None,
+            shortcut_mod: None,
+            record: None,
+            record_path: None,
+            scrcpy_path: None,
+            otg_pure: None,
+            camera_facing: Some("back".to_string()),
+            camera_id: None,
+            codec: None,
+            camera_ar: None,
+            camera_high_speed: None,
+            vd_width: None,
+            vd_height: None,
+            vd_dpi: None,
+            rotation: Some("90".to_string()),
+            res: None,
+            hid_keyboard: None,
+            hid_mouse: None,
+            render_driver: None,
+        };
+
+        let args = build_scrcpy_args(&config, None);
+        assert!(args.contains(&"--display-orientation".to_string()));
+        assert!(args.contains(&"--record-orientation".to_string()));
+        assert!(args.contains(&"180".to_string()));
+        assert!(!args.contains(&"--capture-orientation".to_string()));
+    }
+
+    #[test]
+    fn test_build_scrcpy_args_camera_default_applies_baseline_orientation() {
+        let config = ScrcpyConfig {
+            device: "device1".to_string(),
+            session_mode: "camera".to_string(),
+            bitrate: None,
+            fps: None,
+            stay_awake: None,
+            turn_off: None,
+            audio_enabled: None,
+            audio_playback: None,
+            audio_source: None,
+            always_on_top: None,
+            fullscreen: None,
+            borderless: None,
+            hover_monitor: None,
+            shortcut_mod: None,
+            record: None,
+            record_path: None,
+            scrcpy_path: None,
+            otg_pure: None,
+            camera_facing: Some("back".to_string()),
+            camera_id: None,
+            codec: None,
+            camera_ar: None,
+            camera_high_speed: None,
+            vd_width: None,
+            vd_height: None,
+            vd_dpi: None,
+            rotation: None,
+            res: None,
+            hid_keyboard: None,
+            hid_mouse: None,
+            render_driver: None,
+        };
+
+        let args = build_scrcpy_args(&config, None);
+        assert!(args.contains(&"--display-orientation".to_string()));
+        assert!(args.contains(&"--record-orientation".to_string()));
+        assert!(args.contains(&"90".to_string()));
+        assert!(!args.contains(&"--capture-orientation".to_string()));
     }
 
     #[test]
@@ -1234,6 +1367,8 @@ mod tests {
             stay_awake: None,
             turn_off: None,
             audio_enabled: None,
+            audio_playback: None,
+            audio_source: None,
             always_on_top: None,
             fullscreen: None,
             borderless: None,
@@ -1256,8 +1391,6 @@ mod tests {
             hid_keyboard: None,
             hid_mouse: None,
             render_driver: None,
-            hover_monitor: None,
-            shortcut_mod: None,
         };
 
         let args = build_scrcpy_args(&config, None);
@@ -1508,8 +1641,7 @@ pub fn focus_scrcpy_window_sync() -> Result<(), String> {
                 use windows::Win32::UI::WindowsAndMessaging::{
                     GetForegroundWindow, IsIconic, ShowWindow, SW_RESTORE,
                     GetWindowLongW, SetWindowLongW, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TOOLWINDOW,
-                    SetLayeredWindowAttributes, GetLayeredWindowAttributes, LWA_ALPHA, SetWindowPos, HWND_TOP, SWP_NOACTIVATE,
-                    LAYERED_WINDOW_ATTRIBUTES_FLAGS
+                    SetLayeredWindowAttributes, LWA_ALPHA, SetWindowPos, HWND_TOP, SWP_NOACTIVATE
                 };
 
                 // 1. Ghost Window Strategy (Updated):
